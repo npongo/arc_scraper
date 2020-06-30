@@ -1,0 +1,34 @@
+ALTER TABLE [SINAV].[dbklhk_pkps_pskl_hp_hd]
+ADD CONSTRAINT [fk_dbklhk_pkps_pskl_s_hphd] FOREIGN KEY(hd_id) REFERENCES [SINAV].[SPASIALHPHD] (hd_id)
+GO
+
+ALTER TABLE [SINAV].[dbklhk_pkps_pskl_kemitraan_hut]
+ADD CONSTRAINT [fk_dbklhk_pkps_pskl_s_iphps] FOREIGN KEY(kemitraan_id) REFERENCES [SINAV].[SPASIALIPHPS] (iphps_id)
+GO
+ALTER TABLE [SINAV].[dbklhk_pkps_pskl_iuphhkhtr]
+ADD CONSTRAINT [fk_dbklhk_pkps_pskl_s_iuphhkhtr] FOREIGN KEY(htr_id) REFERENCES [SINAV].[SPASIALIUPHHKHTR] (htr_id)
+GO
+ALTER TABLE [SINAV].[dbklhk_pkps_pskl_iup_hkm]
+ADD CONSTRAINT [fk_dbklhk_pkps_pskl_s_iuphkm] FOREIGN KEY(hkm_id) REFERENCES [SINAV].[SPASIALIUPHKM] (hkm_id)
+GO
+ALTER TABLE [SINAV].[dbklhk_pkps_pskl_kemitraan_hut]
+ADD CONSTRAINT [fk_dbklhk_pkps_pskl_s_kulinkk] FOREIGN KEY(kemitraan_id) REFERENCES [SINAV].[SPASIALKULINKK] (kulinkk_id)
+GO
+
+
+
+ALTER TABLE [SINAV].[dbklhk_pkps_pskl_hp_hd]
+ADD CONSTRAINT [fk_dbklhk_pkps_pskl_usulan_hd] FOREIGN KEY(id_usulan_hd) REFERENCES [SINAV].[dbklhk_pkps_pskl_usulan_hd] (id_usulan_hd)
+GO
+ALTER TABLE [SINAV].[dbklhk_pkps_pskl_iup_hkm]
+ADD CONSTRAINT [fk_dbklhk_pkps_pskl_usulan_hkm] FOREIGN KEY(id_usulan_hkm) REFERENCES [SINAV].[dbklhk_pkps_pskl_usulan_hkm] (id_usulan_hkm)
+GO
+ALTER TABLE [SINAV].[dbklhk_pkps_pskl_iuphhkhtr]
+ADD CONSTRAINT [fk_dbklhk_pkps_pskl_usulan_htr] FOREIGN KEY(id_usulan_htr) REFERENCES [SINAV].[dbklhk_pkps_pskl_usulan_htr] (id_usulan_htr)
+GO
+ALTER TABLE [SINAV].[dbklhk_pkps_pskl_kemitraan_hut]
+ADD CONSTRAINT [fk_dbklhk_pkps_pskl_usulan_iphps] FOREIGN KEY(id_usulan_kk) REFERENCES [SINAV].[dbklhk_pkps_pskl_usulan_iphps] (id_usulan_iphps)
+GO
+ALTER TABLE [SINAV].[dbklhk_pkps_pskl_kemitraan_hut]
+ADD CONSTRAINT [fk_dbklhk_pkps_pskl_usulan_kulinkk] FOREIGN KEY(id_usulan_kk) REFERENCES [SINAV].[dbklhk_pkps_pskl_usulan_kulinkk] (id_usulan_kulinkk)
+GO

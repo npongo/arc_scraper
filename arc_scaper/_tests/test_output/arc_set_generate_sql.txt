@@ -1,0 +1,35 @@
+IF OBJECT_ID('[SINAV].[dbklhk_pkps_pskl_usulan_iphps]') IS NOT NULL
+	DROP TABLE [SINAV].[dbklhk_pkps_pskl_usulan_iphps]
+GO
+CREATE TABLE [SINAV].[dbklhk_pkps_pskl_usulan_iphps] (
+[objectid] int NOT NULL,
+[id_usulan_iphps] smallint NULL,
+[kodprv] smallint NULL,
+[kodkab] smallint NULL,
+[nama_prov] varchar(62) NULL,
+[nama_kab] varchar(62) NULL,
+[nama_kec] varchar(62) NULL,
+[nama_desa] varchar(62) NULL,
+[no_usulan_iphps] varchar(62) NULL,
+[tgl_usulan_iphps] bigint NULL, 
+[tgl_usulan_iphps_Date] AS (dateadd(millisecond, tgl_usulan_iphps%(60000), dateadd(minute, tgl_usulan_iphps/(60000), '1970-01-01 00:00:00.000'))),
+[nama_kelompok] varchar(62) NULL,
+[luas_usulan_hl] float NULL,
+[luas_usulan_hp] float NULL,
+[luas_usulan_hpt] float NULL,
+[luas_usulan_hpk] float NULL,
+[luas_usulan_total] float NULL,
+[proses_usulan] varchar(62) NULL,
+[tgl_proses_usulan] bigint NULL, 
+[tgl_proses_usulan_Date] AS (dateadd(millisecond, tgl_proses_usulan%(60000), dateadd(minute, tgl_proses_usulan/(60000), '1970-01-01 00:00:00.000'))),
+[no_sk] varchar(62) NULL,
+[shape] geometry NULL,
+[penelaah] varchar(62) NULL,
+[nama_kph] varchar(62) NULL,
+[shape_Length] float NULL,
+[shape_Area] float NULL,
+CONSTRAINT [pk_SINAV_dbklhk_pkps_pskl_usulan_iphps_objectid] PRIMARY KEY([objectid])
+)CREATE INDEX [SINAV_dbklhk_pkps_pskl_usulan_iphps_I5id_usulan_iphp] ON [SINAV].[dbklhk_pkps_pskl_usulan_iphps](id_usulan_iphps)
+GO
+
+CREATE SPATIAL INDEX [spidx_SINAV_dbklhk_pkps_pskl_usulan_iphps_shape] ON [SINAV].[dbklhk_pkps_pskl_usulan_iphps](shape) USING GEOMETRY_AUTO_GRID  WITH (BOUNDING_BOX = (xmin = 114.024118595,  ymin = -8.552478343999951,  xmax = 114.35918235500003,  ymax = -8.430739194999944));

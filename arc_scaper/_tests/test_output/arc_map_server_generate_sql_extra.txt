@@ -1,0 +1,3 @@
+ALTER TABLE [SINAV].[dbklhk_pkps_pskl_kemitraan_hut]
+ADD CONSTRAINT [fk_dbklhk_pkps_pskl_usulan_iphps] FOREIGN KEY(id_usulan_kk) REFERENCES [SINAV].[dbklhk_pkps_pskl_usulan_iphps] (id_usulan_iphps)
+GO
