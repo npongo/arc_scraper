@@ -5,7 +5,7 @@ from os.path import split
 import requests
 from helpers import exception_logging
 
-
+# TODO add out_srid
 class ArcBase(ABC):
 
     def __init__(self, uri, db_client):

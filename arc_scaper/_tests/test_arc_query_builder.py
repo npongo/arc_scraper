@@ -1,18 +1,18 @@
 from requests import get
 from db_clients.mssql_db_client import SqlServerClient
-from _tests.mock_helper import mock_get_return, db_conn, get_generated_sql_expected, save_test_to_file
+from _tests.mock_helper import mock_get_return, get_db_conn, get_generated_sql_expected, save_test_to_file
 from arc_layer import ArcLayer
 import pytest
 from arc_query_builder import ArcQueryBuilder
 
 
 @pytest.fixture(autouse=True)
-def arc_layer(autouse=True):
+def arc_layer(db_type='mssql'):
     uri = 'http://geoportal.menlhk.go.id/arcgis/rest/services/SINAV/Usulan_IPHPS/MapServer/0'
     uri = 'http://geoportal.menlhk.go.id/arcgis/rest/services/KLHK_EN/IUPHHK_RE/MapServer/0'
     folder = "SINAV"
-    sql_conn = SqlServerClient(db_conn)
-    return ArcLayer(uri, folder, sql_conn)
+    sql_client = get_db_conn(db_type)
+    return ArcLayer(uri, folder, sql_client)
 
 
 def test_query_builder_init(arc_layer):

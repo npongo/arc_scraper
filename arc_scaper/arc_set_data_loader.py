@@ -2,8 +2,7 @@ from threading import Timer
 from arc_query_builder import ArcQueryBuilder
 from arc_enum import ArcFormat, ArcOutStatistic, ArcStatisticType
 from requests import get
-from warnings import warn
-from helpers import json_to_wkt, exception_logging
+from helpers import json_to_wkt, exception_logging, esri_geometry_to_empty_wtk
 from time import clock
 from json import dumps
 from datetime import datetime
@@ -228,6 +227,11 @@ class ArcSetDataLoader:
                 query_builder.format = ArcFormat.JSON.value
                 query_builder.out_SR = 4326
                 self.__OIDs_to_load = list(self.__OIDs - self.__loaded_OIDs)
+
+                if self.__loaded_record_count == self.__record_count:
+                    print(f"Finished loading {self.__loaded_record_count} of {self.__record_count} for table {self.arc_set.name}.")
+                    return
+
                 if len(self.__OIDs_to_load):  # load by record id
                     while self.__result_offset < len(self.__OIDs_to_load):
                         start = self.__result_offset
@@ -264,7 +268,9 @@ class ArcSetDataLoader:
                     self.load_data()
                 else:
                     self.errors.append(Exception("Can not load metadata for {}".format(self.arc_set.name)))
-            print(f"finished loading {self.arc_set.name}")
+
+            print(f"Finished loading {self.__loaded_record_count} of {self.__record_count} for table {self.arc_set.name}.")
+
         except Exception as e:
             self.__add_error(e)
             print(f"finished loading {self.arc_set.name} with error!")
@@ -272,9 +278,9 @@ class ArcSetDataLoader:
             self.save_stats_to_db()
 
     def __load_batch(self, query):
-        self.__tries = 0
         query_result = self.try_load_records(query)
         if query_result:
+            self.__tries = 0
             print(f"Successfully downloaded {self.__result_record_count}  records for  {self.arc_set.name} !")
             rows_inserted = self.parse_and_save_json_data(query_result)
             if rows_inserted:
@@ -292,21 +298,25 @@ class ArcSetDataLoader:
             self.__t0 = clock()
             response = get(query_builder)
             if response.ok and "error" not in response.json():
-                self.__http_success_record_no[self.__result_record_count] = \
-                    self.__http_success_record_no.get(self.__result_record_count, 0)+1
+
                 self.__result_offset += self.__result_record_count
                 # millis = self.__stop_timer()
                 elapsed = clock()-self.__t0
+                # learning the optimal number of records to try and download
+
                 millis_per_record = (elapsed*1000)/self.__result_record_count
+
+                self.__http_success_record_no[self.__result_record_count] = 1/millis_per_record
+
                 opt_record_no = min([int(self.__target_time/millis_per_record), self.max_result_record_count])
 
                 self.__result_record_count = int((sum([k*float(v) for k, v in self.__http_success_record_no.items()])
                                                  + opt_record_no) /
-                                                 (sum([v for k, v in self.__http_success_record_no.items()]) + 1.0))
+                                                 (sum([v for k, v in self.__http_success_record_no.items()]) + 1/millis_per_record))
                 return response.json()
             elif "error" in response.json():
                 elapsed = clock() - self.__t0
-                self.__target_time = elapsed * 1000
+                self.__target_time = min(elapsed * 1000 * .75, 30000)
                 raise Exception(response.text)
             else:
                 raise Exception(response.text)
@@ -320,10 +330,13 @@ class ArcSetDataLoader:
                     self.__result_record_count = int(self.__result_record_count * .3) + 1
                     # self.try_load_records(query_builder)
                 elif self.__tries < self.__max_tries:
+
                     self.__tries += 1
                     # self.try_load_records(query_builder)
                 else:
-                    return False
+                    self.__tries = 0
+                    self.__result_offset += self.__result_record_count
+                return False
             except Exception as e:
                 self.__add_error(e)
                 return False
@@ -352,7 +365,7 @@ class ArcSetDataLoader:
                 insert_template = self.__db_client.sql_generator_templates['data_insert'].format(**p)
 
                 def non_geom(json):
-                    return 'POINT EMPTY'
+                    return esri_geometry_to_empty_wtk.get(geometry_type, 'POINT EMPTY')
 
                 for f in json['features']:
 
@@ -363,9 +376,10 @@ class ArcSetDataLoader:
                         geom = f.get('geometry', '')
                         wkt = json_to_wkt.get(geometry_type, non_geom)(geom)
                         if wkt.strip() in ["", "()"]:
-                            inserts.append(null_spatial_data_insert.format(values=values))
-                        else:
-                            inserts.append(spatial_data_insert.format(values=values, wkt=wkt))
+                            wkt = non_geom('')   # ensure that wkt is not null
+                        #    inserts.append(null_spatial_data_insert.format(values=values))
+                        # else:
+                        inserts.append(spatial_data_insert.format(values=values, wkt=wkt))
                     else:
                         inserts.append(data_row_insert.format(values=values))
 
@@ -384,13 +398,15 @@ class ArcSetDataLoader:
         try:
             p = {
                 'table_name': self.arc_set.sql_table_name,
-                'timestamp': datetime.now(),
+                'timestamp': self.__db_client.string_date(datetime.now()),
                 'min_OID': self.__min_OID,
                 'max_OID': self.__max_OID,
                 'record_count': self.__record_count,
                 'loaded_record_count': self.__loaded_record_count,
-                'json': dumps(self.arc_set.raw_json),
-                'errors': (",".join([str(e) for e in self.errors]))[:512]
+                'url': self.__db_client.insert_safe(self.arc_set.uri),
+                'json': self.__db_client.insert_safe(dumps(self.arc_set.raw_json)),
+                'errors': 'NULL' if len(self.errors) == 0
+                else "'{}'".format((",".join([self.__db_client.insert_safe(str(e)) for e in self.errors]))[:512])
             }
             sql_stm = self.__db_client.sql_generator_templates['insert_stats'].format(**p)
             self.__db_client.exec_non_query(sql_stm)

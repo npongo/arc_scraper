@@ -1,5 +1,4 @@
 from arc_scaper.arc_base import ArcBase
-from helpers import sanitize_name, sanitize_and_quote_name
 from itertools import product
 
 class ArcSet(ArcBase):
@@ -149,8 +148,8 @@ class ArcSet(ArcBase):
 
     @property
     def sql_table_name(self):
-        return "{0}.{1}".format(sanitize_and_quote_name(self._folder, self.db_client.quote_characters),
-                                sanitize_and_quote_name(self.name, self.db_client.quote_characters))
+        return "{0}.{1}".format(self.db_client.sanitize_and_quote_name(self._folder),
+                                self.db_client.sanitize_and_quote_name(self.name))
 
     def __get_field_length(self, field):
         length = int(field['length'] * 1.25) if 'length' in field else 0
@@ -178,9 +177,11 @@ class ArcSet(ArcBase):
                         isnull = self.db_client.sql_generator_templates['unique_field']
 
         t = field['type']
-        n = sanitize_and_quote_name(field['name'], self.db_client.quote_characters)
+        n = self.db_client.sanitize_and_quote_name(field['name'])
         if t == 'esriFieldTypeDate':
-            n = sanitize_name(field['name'])
+            n = self.db_client.sanitize_name(field['name'])
+        if t == 'esriFieldTypeGeometry':  # and self.db_client.name == 'mysql':
+            isnull = 'NOT NULL'
 
         sql_t = self.db_client.esri_types_to_sql[t]
         ff = f"{n} {sql_t} {isnull}"
@@ -209,7 +210,7 @@ class ArcSet(ArcBase):
 
         sql_template = self.db_client.sql_generator_templates.get(domain_type, "")
         p = {
-            "field": domain['fieldName'],
+            "field": self.db_client.sanitize_and_quote_name(domain['fieldName']),
             "values": ArcSet.format_code_values(domain.get('codedValues', []), field_type),
             "min_value": domain.get('minValue', 0),
             "max_value": domain.get('maxValue', 0)
@@ -229,10 +230,10 @@ class ArcSet(ArcBase):
         if any([f['type'] == "esriFieldTypeGeometry" for f in self.fields if f['name'] == arc_index['fields']]):
             return ""
 
-        p = {'idx_name': sanitize_name(arc_index['name']),
-             'idx_fields': ",".join([sanitize_name(f) for f in arc_index['fields'].split(",")]),
-             'folder': sanitize_name(self.folder),
-             'name': sanitize_name(self.name)}
+        p = {'idx_name': self.db_client.sanitize_name(arc_index['name']),
+             'idx_fields': ",".join([self.db_client.sanitize_and_quote_name(f) for f in arc_index['fields'].split(",")]),
+             'folder': self.db_client.sanitize_name(self.folder),
+             'name': self.db_client.sanitize_name(self.name)}
         if any([f['type'] for f in self.fields
                 if f['type'] == "esriFieldTypeOID" and arc_index['fields'] == f['name']]):
             return self.db_client.sql_generator_templates['unique_constraint'].format(**p)
@@ -248,11 +249,11 @@ class ArcSet(ArcBase):
         if field['type'] != "esriFieldTypeOID":
             raise Exception("Field must be of type esriFieldTypeOID!")
 
-        idx_name = sanitize_name(field['name'])
+        idx_name = self.db_client.sanitize_name(field['name'])
         p = {'idx_name': idx_name,
-             'idx_fields': idx_name,
-             'folder': sanitize_name(self.folder),
-             'name': sanitize_name(self.name)}
+             'idx_fields':  ",".join([self.db_client.sanitize_and_quote_name(f) for f in idx_name.split(",")]),
+             'folder': self.db_client.sanitize_name(self.folder),
+             'name': self.db_client.sanitize_name(self.name)}
         return self.db_client.sql_generator_templates['primary_constraint'].format(**p)
 
     def _generate_index_sql(self, arc_index):
@@ -263,12 +264,12 @@ class ArcSet(ArcBase):
         """
         if bool(arc_index.get('isUnique', False)):
             raise Exception("Unique constraints can not be generated in this context!")
-        idx_name = sanitize_name(arc_index['name'])
+        idx_name = self.db_client.sanitize_name(arc_index['name'])
 
         p = {'idx_name': idx_name,
-             'idx_fields': ",".join([sanitize_name(f) for f in arc_index['fields'].split(",")]),
-             'folder': sanitize_name(self.folder),
-             'name': sanitize_name(self.name)}
+             'idx_fields': ",".join([self.db_client.sanitize_and_quote_name(f) for f in arc_index['fields'].split(",")]),
+             'folder': self.db_client.sanitize_name(self.folder),
+             'name': self.db_client.sanitize_name(self.name)}
 
         if any([True for f in self.fields if f['name'] == arc_index['name'] and f['type'] == "esriFieldTypeGeometry"]
                 + [False]):
@@ -288,10 +289,10 @@ class ArcSet(ArcBase):
         if field['type'] != "esriFieldTypeGeometry":
             raise Exception("Spatial Index can not be generated for none geometry fields")
 
-        p = {'idx_name': sanitize_name(self.name),
-             'idx_fields': sanitize_name(field['name']),
-             'folder': sanitize_name(self.folder),
-             'name': sanitize_name(self.name),
+        p = {'idx_name': self.db_client.sanitize_name(self.name),
+             'idx_fields': self.db_client.sanitize_and_quote_name(field['name']),
+             'folder': self.db_client.sanitize_name(self.folder),
+             'name': self.db_client.sanitize_name(self.name),
              'xmin': self.extent['xmin'],
              'ymin': self.extent['ymin'],
              'xmax': self.extent['xmax'],
@@ -328,14 +329,16 @@ class ArcSet(ArcBase):
             }
             sql = self.db_client.sql_generator_templates['drop_if_exists_create_table'].format(**p)
 
-            sql += self.db_client.statement_terminator.join({self._generate_index_sql(i).strip() for i in self.indexes
-                                                             if not bool(i.get('isUnique', False))
-                                                             and self._index_fields_type_not_geometry(i)})
-            sql += self.db_client.statement_terminator if not sql.endswith(self.db_client.statement_terminator) else ""
-            sql += self.db_client.statement_terminator.join({self._generate_spatial_index_sql(i).strip()
-                                                             for i in self.fields
-                                                             if i.get('type', "") == "esriFieldTypeGeometry"})
-            # sql += self.db_client.statement_terminator if not sql.endswith(self.db_client.statement_terminator) else ""
+            idx = self.db_client.statement_terminator.join({self._generate_index_sql(i).strip() for i in self.indexes
+                                                            if not bool(i.get('isUnique', False))
+                                                            and self._index_fields_type_not_geometry(i)})
+            sql += (self.db_client.statement_terminator if idx.strip() else "") + idx
+
+            sp_idx = self.db_client.statement_terminator.join({self._generate_spatial_index_sql(i).strip()
+                                                               for i in self.fields
+                                                               if i.get('type', "") == "esriFieldTypeGeometry"})
+            sql += (self.db_client.statement_terminator if sp_idx.strip() else "") + sp_idx.strip()
+
             return sql.strip()
 
         except Exception as e:

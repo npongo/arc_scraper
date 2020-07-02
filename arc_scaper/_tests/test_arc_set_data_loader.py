@@ -1,5 +1,5 @@
 from requests import get
-from _tests.mock_helper import mock_get_return, db_conn, get_generated_sql_expected, save_test_to_file
+from _tests.mock_helper import mock_get_return, get_db_conn, get_generated_sql_expected, save_test_to_file
 from arc_layer import ArcLayer
 import pytest
 from arc_query_builder import ArcQueryBuilder
@@ -8,14 +8,11 @@ from db_clients.mssql_db_client import SqlServerClient
 
 
 @pytest.fixture(autouse=True)
-def arc_layer(url, folder):
-    # uri = 'http://geoportal.menlhk.go.id/arcgis/rest/services/SINAV/Usulan_IPHPS/MapServer/0'
-    # # uri = 'http://geoportal.menlhk.go.id/arcgis/rest/services/KLHK_EN/IUPHHK_RE/MapServer/0'
-    # folder = "SINAV"
-    sql_conn = db_conn
-    sql_conn['database'] = 'Indonesia_menlhk'
-    sql_client = SqlServerClient(sql_conn)
+def arc_layer(url, folder, db_type='mssql'):
+    sql_client = get_db_conn(db_type)
+    sql_client.db_conn['database'] = 'Indonesia_menlhk'
     return ArcLayer(url, folder, sql_client)
+
 
 @pytest.mark.parametrize("url, folder", [('http://geoportal.menlhk.go.id/arcgis/rest/services/SINAV/Usulan_IPHPS/MapServer/0', 'SINAV'),
                                          ('http://geoportal.menlhk.go.id/arcgis/rest/services/KLHK_EN/IUPHHK_RE/MapServer/0', 'KLHK_EN'),
@@ -27,6 +24,7 @@ def test_arc_set_data_loader_init(arc_layer):
 
     assert loader.db_client is not None
     assert loader.arc_set == arc_layer
+
 
 @pytest.mark.parametrize("url, folder", [('http://geoportal.menlhk.go.id/arcgis/rest/services/SINAV/Usulan_IPHPS/MapServer/0', 'SINAV'),
                                          ('http://geoportal.menlhk.go.id/arcgis/rest/services/KLHK_EN/IUPHHK_RE/MapServer/0', 'KLHK_EN'),
@@ -43,6 +41,7 @@ def test_arc_set_data_loader_load_stats(arc_layer):
     assert loader._ArcSetDataLoader__record_count >= \
            (loader._ArcSetDataLoader__max_OID - loader._ArcSetDataLoader__min_OID)
     assert len(loader.errors) == 0
+
 
 @pytest.mark.parametrize("url, folder", [('http://geoportal.menlhk.go.id/arcgis/rest/services/SINAV/Usulan_IPHPS/MapServer/0', 'SINAV'),
                                          ('http://geoportal.menlhk.go.id/arcgis/rest/services/KLHK_EN/IUPHHK_RE/MapServer/0', 'KLHK_EN'),

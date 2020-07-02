@@ -1,44 +1,48 @@
 from mysql.connector import connect, Error
-from helpers import sanitize_and_quote_name, exception_logging
+from helpers import sanitize_and_quote_name, exception_logging, sanitize_name
+from datetime import datetime
+from db_clients.db_client_base import DBClient
 
 
-class MySQLClient:
+class MySQLClient(DBClient):
 
-    def __init__(self, db_conn):
-        self.__db_conn = db_conn
-        self.__sql_server_sql_templates = {
+    def __init__(self, db_conn, sql_generator_options={}, sql_generator_templates={}):
+
+        super().__init__(db_conn)
+
+        self._sql_server_sql_templates = {
             "table_name": "{schema}.{table_name}",
             "null_string": "NULL",
             "esriFieldTypeOID": "{name} {type} NOT NULL",
             "esriFieldTypeString": "{name} {type}({length}) {null}",
-            "esriFieldTypeDate": "[{name}] {type} {null}, \n[{name}_Date] AS (dateadd(millisecond, {name}%(60000), dateadd(minute, {name}/(60000), '1970-01-01 00:00:00.000')))",
+            "esriFieldTypeDate": "`{name}` {type} {null}, \n `{name}_date` datetime AS (FROM_UNIXTIME({name}/1000)) NULL",
             "unique_field": "NOT NULL UNIQUE",
-            "unique_constraint": "CONSTRAINT [{folder}_{name}_{idx_name}] UNIQUE([{idx_fields}])",
-            "primary_constraint": "CONSTRAINT [pk_{folder}_{name}_{idx_name}] PRIMARY KEY([{idx_fields}])",
-            "create_spatial_index": "ALTER TABLE  [{folder}].[{idx_name}] ADD SPATIAL INDEX({idx_fields}); ",
-            "create_index": "CREATE INDEX [{folder}_{name}_{idx_name}] ON [{folder}].[{name}]({idx_fields})",
-            "foreign_key_constraint": "ALTER TABLE {schema}.{table_name}\nADD CONSTRAINT [fk_{name}] FOREIGN KEY({column}) REFERENCES {ref_schema}.{ref_table_name} ({ref_column})",
-            "insert_stats": "INSERT INTO TableStats(TableName, MinOID, MaxOID, RecordCount, LoadedRecordCount) VALUES('{table_name}',{min_OID},{max_OID},{record_count},{loaded_record_count}}",
-            "create_schema": "IF SCHEMA_ID('{schema}') IS NULL EXEC('CREATE SCHEMA [{schema}]')",
-            "rangeValue": "CONSTRAINT [CK_{field}_range_domain] CHECK([{field}] BETWEEN {min_value} AND {max_value})",
-            "codedValue": "CONSTRAINT [CK_{field}_code_domain] CHECK([{field}] IN({values}))",
+            "unique_constraint": "CONSTRAINT `{folder}_{name}_{idx_name}` UNIQUE([{idx_fields}])",
+            "primary_constraint": "CONSTRAINT `pk_{folder}_{name}_{idx_name}` PRIMARY KEY(`{idx_fields}`)",
+            "create_spatial_index": "ALTER TABLE  `{folder}`.`{idx_name}` ADD SPATIAL INDEX({idx_fields})",
+            "create_index": "CREATE INDEX `{folder}_{name}_{idx_name}` ON `{folder}`.`{name}`({idx_fields})",
+            "foreign_key_constraint": "ALTER TABLE {schema}.{table_name}\nADD CONSTRAINT `fk_{name}` FOREIGN KEY({column}) REFERENCES {ref_schema}.{ref_table_name} ({ref_column})",
+            "create_schema": "CREATE SCHEMA IF NOT EXISTS {schema}",
+            "rangeValue": "",  # "CONSTRAINT `ck_{field}_range_domain` CHECK([{field}] BETWEEN {min_value} AND {max_value})",
+            "codedValue": "",  # "CONSTRAINT `ck_{field}_code_domain` CHECK([{field}] IN({values}))",
             "select_object_ids": "SELECT {object_id_field_name} FROM {table_name}",
             "data_insert": "INSERT INTO {table_name}({columns}) VALUES {values}",
             "data_row_insert": "({values})",
             "spatial_data_insert": "({values}, GEOMETRY::STGeomFromText('{wkt}',4326))",
             "null_spatial_data_insert": "({values},NULL)",
-            "create_database": "USE master\nGO\n\nIF DB_ID('{database}') IS NULL CREATE DATABASE {database};\n\nUSE [{database}]",
-            "drop_if_exists_create_table": "IF OBJECT_ID('{table_name}') IS NOT NULL\n\tDROP TABLE {table_name}\nGO\nCREATE TABLE {table_name} (\n{fields}{constraints}\n)",
-            "create_code_table_with_data": "IF OBJECT_ID('{schema}.{table_name}') IS NOT NULL\n\tDROP TABLE {schema}.{table_name}\nGO\n\nCREATE TABLE {schema}.{table_name} (\n{fields}\n)\nGO\n\nINSERT INTO{schema}.{table_name}([Code], [Name])VALUES\n{inserts}",
-            "code_table_fields": "{code_field} PRIMARY KEY,\n[Name] nvarchar({max_length}) NOT NULL",
+            "create_database": "",  # "CREATE DATABASE IF NOT EXISTS {database};\n\nUSE [{database}]",
+            "drop_if_exists_create_table": "DROP TABLE IF EXISTS {table_name};\n\nCREATE TABLE {table_name} (\n{fields}{constraints}\n)",
+            "create_code_table_with_data": "DROP TABLE IF EXISTS {schema}.{table_name};\n\nCREATE TABLE {schema}.{table_name} (\n{fields}\n);\n\nINSERT INTO{schema}.{table_name}(`code`, `name`)VALUES\n{inserts}",
+            "code_table_fields": "{code_field} PRIMARY KEY,\n`name` nvarchar({max_length}) NOT NULL",
             "insert_code_table_row": "('{code}', '{name}')",
-            "code_table_foreign_key": "ALTER TABLE {schema}.{table_name}\nADD CONSTRAINT {fk_name} FOREIGN KEY({column_name}) REFERENCES {schema}.{code_table_name}(Code)",
+            "code_table_foreign_key": "ALTER TABLE {schema}.{table_name}\nADD CONSTRAINT {fk_name} FOREIGN KEY({column_name}) REFERENCES {schema}.{code_table_name}(`code`)",
             "statement_terminator": ";\n\n",
             "truncate_table": "TRUNCATE TABLE {table_name}",
-            "insert_stats": "INSERT INTO ArcSetStats(TableName,LoadDate,MinOID,MaxOID,RecordCount,LoadedRecordCount,JsonDef,errors)VALUES('{table_name}', '{timestamp}', {min_OID}, {max_OID}, {record_count}, {loaded_record_count}, '{json}', '{errors}')",
-            "create_stats_table": "CREATE TABLE ArcSetStats(\nTableName varchar(128)\n,LoadDate datetime NOT NULL\n,MinOID int NULL\n,MaxOID int NULL\n,RecordCount int NULL\n,LoadedRecordCount int NULL\n,JsonDef varchar(max) NULL\n,errors varchar(512) NULL\n,CONSTRAINT PK_ArcSetStats PRIMARY KEY(TableName, LoadDate)\n) "
-
+            "insert_stats": "INSERT INTO arc.arc_set_stats(table_name,load_date,min_oid,max_oid,record_count,loaded_record_count,arc_set_url,json_def,errors)VALUES('{table_name}', '{timestamp}', {min_OID}, {max_OID}, {record_count}, {loaded_record_count}, '{url}', '{json}', {errors})",
+            "create_stats_table": "CREATE SCHEMA IF NOT EXISTS Arc;\n\nCREATE TABLE arc.arc_set_stats(\ntable_name varchar(128)\n,load_date datetime NOT NULL\n,min_oid int NULL\n,max_oid int NULL\n,record_count int NULL\n,loaded_record_count int NULL\n,arc_set_url varchar(512) NULL\n,json_def varchar(1600) NULL\n,errors varchar(512) NULL\n,CONSTRAINT pk_arc_set_stats PRIMARY KEY(table_name, load_date)\n) "
         }
+        for k, v in sql_generator_templates:
+            self._sql_generator_templates[k] = v
 
         self.esri_types_to_sql = {"esriFieldTypeSmallInteger": "smallint",
                      "esriFieldTypeSingle": "float",
@@ -54,43 +58,30 @@ class MySQLClient:
                      "esriFieldTypeDouble": "double",
                      "esriFieldTypeInteger": "int"}
 
-        self.sql_generator_options = {
+        self._sql_generator_options = {
             'enforce_relationships': False,
-            'enforce_domains': True
+            'enforce_domains': True,
+            "statement_terminator": ";\n\n",
+            "quote_characters": "`",
+            "max_identifier_length": -63,
+            "use_lower_case_identifier": True,
+            'date_string_format': "%Y-%m-%dT%H:%M:%S",
+            'insert_safe_characters': {"'": "''"},
+            'sanitize_replacements': {'': u"`~!@#$%^*()+=][{}\\|?><,/;:'\"",
+                                      "_": u".-& "},
+            'name': "mysql_db_client"
         }
-
-    @property
-    def db_conn(self):
-        return self.__db_conn
-
-    @db_conn.setter
-    def db_conn(self, value):
-        self.__db_conn = value
-
-    def quote_name(self, name):
-        quote_start = self.quote_characters[0]
-        quote_end = (self.quote_characters + self.quote_characters)[1]
-        if not name.startswith(quote_start):
-            name = quote_start + name
-        if not name.endswith(quote_end):
-            name += quote_end
-        return name
-
-    def sanitize_and_quote_name(self, name):
-        return sanitize_and_quote_name(name, self.quote_characters)
-
-    @property
-    def statement_terminator(self):
-        return self.__sql_server_sql_templates['statement_terminator']
-
-    @property
-    def quote_characters(self):
-        return self.__db_conn.get("quote_characters", "[]")
-
-    def exec_non_query(self, sql_statements):
+         
+        for k, v in sql_generator_options:
+            self._sql_generator_options[k] = v
+     
+    def exec_non_query(self, sql_statements, raise_on_fail=False):
         """
 
-        :param sql_statements: a list of sql statements to execute that doe not return a result, primaryily meant for DDL slq
+        :param sql_statements: a list of sql statements to execute that doe not return a result, primaryily meant
+         for DDL slq
+        :param raise_on_fail: stops execture of additional sql statements if true and raise the exception, otherwise
+        exceptions are logged
         :return: None
         """
         conn = connect(**self.db_conn)
@@ -100,7 +91,12 @@ class MySQLClient:
                 sql_statements = sql_statements.split("\nGO")
 
             for stm in sql_statements:
-                cursor.execute(stm.strip())
+                try:
+                    cursor.execute(stm.strip())
+                except Exception as e:
+                    exception_logging(e)
+                    if raise_on_fail:
+                        raise e
 
             conn.commit()
 
@@ -112,7 +108,7 @@ class MySQLClient:
             cursor.close()
             conn.close()
 
-    def exec_scaler_query(self, sql_statement):
+    def exec_scalar_query(self, sql_statement):
         """
         execute an sql query against the sql server database that returns a scalar value
         :param sql_statement: an sql statement that returns a scalar value
@@ -154,16 +150,6 @@ class MySQLClient:
             cursor.close()
             conn.close()
 
-    @staticmethod
-    def chunker(seq, size):
-        """
-        groups a list into a list of chunks
-        :param seq: input sequence or list
-        :param size: sizs of the chunk to group the seq into
-        :return: a list of lists, the inner list has the length of size
-        """
-        return (seq[pos:pos + size] for pos in range(0, len(seq), size))
-
     def run_bulk_insert(self, insert_template, data, formatter, batch=1000):
         """
 
@@ -178,7 +164,7 @@ class MySQLClient:
         i = 0
         try:
             formatted = [formatter(row) for row in data]
-            for inserts in SqlServerClient.chunker(formatted, batch):
+            for inserts in MySQLClient.chunker(formatted, batch):
                 sql_stm = insert_template.format(",".join(inserts))
                 try:
                     cursor.execute(sql_stm)
@@ -199,7 +185,3 @@ class MySQLClient:
             cursor.close()
             conn.close()
             return i
-
-    @property
-    def sql_generator_templates(self):
-        return self.__sql_server_sql_templates

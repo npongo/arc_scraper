@@ -1,6 +1,6 @@
 from arc_base import ArcBase
 from arc_map_server import ArcMapServer
-from helpers import validate_url, sanitize_name
+from helpers import validate_url
 from warnings import warn
 
 
@@ -73,8 +73,12 @@ class ArcService(ArcBase):
             warn("not a valid Url: {}".format(uri))
 
     def _generate_schema(self):
+        if len([l for ms in self._arc_map_servers for l in ms.layers]) + \
+           len([l for ms in self._arc_map_servers for l in ms.tables]) == 0:
+            return ""
+
         p = {
-            'schema': sanitize_name(self.name)
+            'schema': self.db_client.sanitize_and_quote_name(self.name)
         }
         sql = self.db_client.sql_generator_templates['create_schema'].\
             format(**p)

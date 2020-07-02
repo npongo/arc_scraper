@@ -1,16 +1,16 @@
 import requests
 from db_clients.mssql_db_client import SqlServerClient
-from _tests.mock_helper import mock_get_return, db_conn, get_generated_sql_expected, save_test_to_file
+from _tests.mock_helper import mock_get_return, get_db_conn, get_generated_sql_expected, save_test_to_file
 from arc_map_server import ArcMapServer
 import pytest
 
 
 @pytest.fixture(autouse=True)
-def arc_map_server():
+def arc_map_server(db_type='mssql'):
     uri = 'http://geoportal.menlhk.go.id/arcgis/rest/services/SINAV/Usulan_IPHPS/MapServer'
     folder = "SINAV"
-    sql_conn = SqlServerClient(db_conn)
-    return ArcMapServer(uri, folder, "dumpy service",  sql_conn)
+    sql_client = get_db_conn(db_type)
+    return ArcMapServer(uri, folder, "dumpy service",  sql_client)
 
 
 def test_arc_map_server_init(monkeypatch, arc_map_server):

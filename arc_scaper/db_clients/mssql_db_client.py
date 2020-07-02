@@ -1,12 +1,16 @@
 import pymssql
-from helpers import sanitize_and_quote_name, exception_logging
+from helpers import sanitize_and_quote_name, exception_logging, sanitize_name
+from datetime import datetime
+from db_clients.db_client_base import DBClient
 
 
-class SqlServerClient:
+class SqlServerClient(DBClient):
 
     def __init__(self, db_conn, sql_generator_options={}, sql_generator_templates={}):
-        self.__db_conn = db_conn
-        self.__sql_generator_templates = {
+
+        super().__init__(db_conn)
+
+        self._sql_generator_templates = {
             "table_name": "{schema}.{table_name}",
             "null_string": "NULL",
             "esriFieldTypeOID": "{name} {type} NOT NULL",
@@ -18,7 +22,6 @@ class SqlServerClient:
             "create_spatial_index": "CREATE SPATIAL INDEX [spidx_{folder}_{idx_name}_{idx_fields}] ON [{folder}].[{idx_name}]({idx_fields}) USING GEOMETRY_AUTO_GRID  WITH (BOUNDING_BOX = (xmin = {xmin},  ymin = {ymin},  xmax = {xmax},  ymax = {ymax})); ",
             "create_index": "CREATE INDEX [{folder}_{name}_{idx_name}] ON [{folder}].[{name}]({idx_fields})",
             "foreign_key_constraint": "ALTER TABLE {schema}.{table_name}\nADD CONSTRAINT [fk_{name}] FOREIGN KEY({column}) REFERENCES {ref_schema}.{ref_table_name} ({ref_column})",
-            "insert_stats": "INSERT INTO TableStats(TableName, MinOID, MaxOID, RecordCount, LoadedRecordCount) VALUES('{table_name}',{min_OID},{max_OID},{record_count},{loaded_record_count}}",
             "create_schema": "IF SCHEMA_ID('{schema}') IS NULL EXEC('CREATE SCHEMA [{schema}]')",
             "rangeValue": "CONSTRAINT [CK_{field}_range_domain] CHECK([{field}] BETWEEN {min_value} AND {max_value})",
             "codedValue": "CONSTRAINT [CK_{field}_code_domain] CHECK([{field}] IN({values}))",
@@ -34,12 +37,12 @@ class SqlServerClient:
             "insert_code_table_row": "('{code}', '{name}')",
             "code_table_foreign_key": "ALTER TABLE {schema}.{table_name}\nADD CONSTRAINT {fk_name} FOREIGN KEY({column_name}) REFERENCES {schema}.{code_table_name}(Code)",
             "truncate_table": "TRUNCATE TABLE {table_name}",
-            "insert_stats": "INSERT INTO ArcSetStats(TableName,LoadDate,MinOID,MaxOID,RecordCount,LoadedRecordCount,JsonDef,errors)VALUES('{table_name}', '{timestamp}', {min_OID}, {max_OID}, {record_count}, {loaded_record_count}, '{json}', '{errors}')",
-            "create_stats_table": "CREATE TABLE ArcSetStats(\nTableName varchar(128)\n,LoadDate datetime NOT NULL\n,MinOID int NULL\n,MaxOID int NULL\n,RecordCount int NULL\n,LoadedRecordCount int NULL\n,JsonDef varchar(max) NULL\n,errors varchar(512) NULL\n,CONSTRAINT PK_ArcSetStats PRIMARY KEY(TableName, LoadDate)\n) "
+            "insert_stats": "INSERT INTO Arc.ArcSetStats(TableName,LoadDate,MinOID,MaxOID,RecordCount,LoadedRecordCount,ArcSetUrl,JsonDef,errors)VALUES('{table_name}', '{timestamp}', {min_OID}, {max_OID}, {record_count}, {loaded_record_count}, '{url}', '{json}', {errors})",
+            "create_stats_table": "IF SCHEMA_ID('{schema}') IS NULL EXEC('CREATE SCHEMA [Arc]')\nGO\n\nCREATE TABLE Arc.ArcSetStats(\nTableName varchar(128)\n,LoadDate datetime NOT NULL\n,MinOID int NULL\n,MaxOID int NULL\n,RecordCount int NULL\n,LoadedRecordCount int NULL\n,ArcSetUrl varchar(512) NULL\n,JsonDef varchar(max) NULL\n,errors varchar(512) NULL\n,CONSTRAINT PK_ArcSetStats PRIMARY KEY(TableName, LoadDate)\n) "
         }
 
         for k, v in sql_generator_templates:
-            self.__sql_generator_templates[k] = v
+            self._sql_generator_templates[k] = v
 
         self.esri_types_to_sql = {"esriFieldTypeSmallInteger": "smallint",
                      "esriFieldTypeSingle": "real",
@@ -55,72 +58,30 @@ class SqlServerClient:
                      "esriFieldTypeDouble": "float",
                      "esriFieldTypeInteger": "int"}
 
-        self.__sql_generator_options = {
+        self._sql_generator_options = {
             'enforce_relationships': False,
             'enforce_domains': True,
             "statement_terminator": "\nGO\n\n",
             "quote_characters": '[]',
-            "max_identifier_length": 128
+            "max_identifier_length": -128,
+            "use_lower_case_identifier": False,
+            'date_string_format': "%Y-%m-%dT%H:%M:%S",
+            'insert_safe_characters': {"'": "''"},
+            'sanitize_replacements': {'': u"`~!@#$%^*()+=][{}\\|?><,/;:'\"",
+                                      "_": u".-& "},
+            'name': 'mssql_db_client'
         }
 
         for k, v in sql_generator_options:
-            self.__sql_generator_options[k] = v
-
-    @property
-    def name(self):
-        return "mssql_db_client"
-
-    @property
-    def sql_generator_templates(self):
-        return self.__sql_generator_templates
-
-    @sql_generator_templates.setter
-    def sql_generator_templates(self, value):
-        for k, v in value:
-            self.__sql_generator_templates[k] = v
-
-    @property
-    def sql_generator_options(self):
-        return self.__sql_generator_options
-
-    @sql_generator_options.setter
-    def sql_generator_options(self, value):
-        for k, v in value:
-            self.__sql_generator_options[k] = v
-
-    @property
-    def db_conn(self):
-        return self.__db_conn
-
-    @db_conn.setter
-    def db_conn(self, value):
-        self.__db_conn = value
-
-    def quote_name(self, name):
-        quote_start = self.quote_characters[0]
-        quote_end = (self.quote_characters + self.quote_characters)[1]
-        if not name.startswith(quote_start):
-            name = quote_start + name
-        if not name.endswith(quote_end):
-            name += quote_end
-        return name
-
-    def sanitize_and_quote_name(self, name):
-        return sanitize_and_quote_name(name, self.quote_characters)
-
-    @property
-    def statement_terminator(self):
-        return self.__sql_generator_options.get('statement_terminator','\nGO\n\n')
-
-    @property
-    def quote_characters(self):
-        return self.__sql_generator_options.get("quote_characters", "[]")
-
-    def exec_non_query(self, sql_statements, autocommit=False):
+            self._sql_generator_options[k] = v
+    
+    def exec_non_query(self, sql_statements, autocommit=False, raise_on_fail=False):
         """
 
         :param sql_statements: a list of sql statements to execute that doe not return a result, primaryily meant for DDL slq
         :param autocommit: control the autocommit feature of the connection.
+        :param raise_on_fail: stops execture of additional sql statements if true and raise the exception, otherwise
+        exceptions are logged
         :return: None
         """
         conn = pymssql.connect(**self.db_conn)
@@ -132,7 +93,12 @@ class SqlServerClient:
                 sql_statements = sql_statements.split(self.statement_terminator)
 
             for stm in sql_statements:
-                cursor.execute(stm.strip())
+                try:
+                    cursor.execute(stm.strip())
+                except Exception as e:
+                    exception_logging(e)
+                    if raise_on_fail:
+                        raise e
 
             if not autocommit:
                 conn.commit()
@@ -186,16 +152,6 @@ class SqlServerClient:
         finally:
             cursor.close()
             conn.close()
-
-    @staticmethod
-    def chunker(seq, size):
-        """
-        groups a list into a list of chunks
-        :param seq: input sequence or list
-        :param size: sizs of the chunk to group the seq into
-        :return: a list of lists, the inner list has the length of size
-        """
-        return (seq[pos:pos + size] for pos in range(0, len(seq), size))
 
     def run_bulk_insert(self, insert_template, data, formatter, batch=1000):
         """

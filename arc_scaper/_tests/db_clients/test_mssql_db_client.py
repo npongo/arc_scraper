@@ -1,12 +1,11 @@
 from db_clients.mssql_db_client import SqlServerClient
 import pytest
 from datetime import datetime
+from _tests.secrets import db_conns
 
 @pytest.fixture()
 def sql_client():
-    db_conn = db_conn = {'server': '.\\npongo16',
-           'database': 'master'}
-    sql_conn = SqlServerClient(db_conn)
+    sql_conn = SqlServerClient(db_conns['mssql'])
     return sql_conn
 
 @pytest.fixture()

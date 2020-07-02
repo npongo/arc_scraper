@@ -2,9 +2,20 @@ from pickle import load
 from urllib.parse import urlparse
 from os import path
 from json import dump
+from _tests.secrets import db_conns
+from db_clients.mysql_db_client import MySQLClient
+from db_clients.postgresql_db_client import PostgreSQLClient
+from db_clients.mssql_db_client import SqlServerClient
 
-db_conn = {'server': '.\\npongo16',
-           'database': 'test_Indonesia_menlhk'}
+
+def get_db_conn(db_type):
+    if db_type == "mssql":
+        return SqlServerClient(db_conns[db_type])
+    if db_type == 'mysql':
+        return MySQLClient(db_conns[db_type])
+    if db_type == "postgresql":
+        return PostgreSQLClient(db_conns[db_type])
+    return None
 
 
 def mock_get_return(url):

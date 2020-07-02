@@ -47,13 +47,13 @@ class ArcRestModel(ArcBase):
         """
         try:
 
-            sql_stm = "\n".join([s.generate_sql().strip() for s in self._arc_services
+            sql_stm = self.db_client.statement_terminator.join([s.generate_sql().strip() for s in self._arc_services
                                  if bool(s.generate_sql().replace(self.db_client.statement_terminator, "").strip())])
             p = {'database': self._database}
             sql = self.db_client.sql_generator_templates['create_database'].format(**p)
-            sql += self.db_client.statement_terminator + self.db_client.sql_generator_templates['create_stats_table']
+            sql += self.db_client.statement_terminator if bool(sql) else "" + self.db_client.sql_generator_templates['create_stats_table']
             sql += self.db_client.statement_terminator + self.generate_sql_preamble()
-            sql += sql_stm
+            sql += self.db_client.statement_terminator + sql_stm
             return sql
         except Exception as e:
             self.add_error(e)

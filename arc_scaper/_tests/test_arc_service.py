@@ -1,16 +1,16 @@
 from arc_service import ArcService
 import requests
 from db_clients.mssql_db_client import SqlServerClient
-from _tests.mock_helper import mock_get_return, db_conn, get_generated_sql_expected, save_test_to_file
+from _tests.mock_helper import mock_get_return, get_db_conn, get_generated_sql_expected, save_test_to_file
 import pytest
 
 
 @pytest.fixture(autouse=True)
-def arc_service():
+def arc_service(db_type='mssql'):
     uri = 'http://geoportal.menlhk.go.id/arcgis/rest/services/SINAV'
     folder = "SINAV"
-    sql_conn = SqlServerClient(db_conn)
-    return ArcService(uri, folder, "<dumpy arc rest model>", sql_conn)
+    sql_client = get_db_conn(db_type)
+    return ArcService(uri, folder, "<dumpy arc rest model>", sql_client)
 
 
 def test_arc_service_init(monkeypatch, arc_service):

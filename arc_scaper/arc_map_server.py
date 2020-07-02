@@ -3,7 +3,6 @@ from arc_base import ArcBase
 from arc_layer import ArcLayer
 from arc_table import ArcTable
 from itertools import product
-from helpers import sanitize_name, sanitize_and_quote_name
 
 
 class ArcMapServer(ArcBase):
@@ -79,13 +78,13 @@ class ArcMapServer(ArcBase):
     def _generate_relationship_sql(self, rel_scr, rel_dst):
 
         p = {
-            "schema": sanitize_and_quote_name(rel_dst['folder'], self.db_client.quote_characters),
-            "table_name": sanitize_and_quote_name(rel_dst['set'], self.db_client.quote_characters),
-            "name": sanitize_name(rel_dst['name']),
-            "column": sanitize_name(rel_dst['keyField']),
-            "ref_schema": sanitize_and_quote_name(rel_scr['folder'], self.db_client.quote_characters),
-            "ref_table_name": sanitize_and_quote_name(rel_scr['set'], self.db_client.quote_characters),
-            "ref_column": sanitize_name(rel_scr['keyField']),
+            "schema": self.db_client.sanitize_and_quote_name(rel_dst['folder'], self.db_client.quote_characters),
+            "table_name": self.db_client.sanitize_and_quote_name(rel_dst['set'], self.db_client.quote_characters),
+            "name": self.db_client.sanitize_name(rel_dst['name']),
+            "column": self.db_client.sanitize_name(rel_dst['keyField']),
+            "ref_schema": self.db_client.sanitize_and_quote_name(rel_scr['folder'], self.db_client.quote_characters),
+            "ref_table_name": self.db_client.sanitize_and_quote_name(rel_scr['set'], self.db_client.quote_characters),
+            "ref_column": self.db_client.sanitize_name(rel_scr['keyField']),
         }
         return self.db_client.sql_generator_templates["foreign_key_constraint"].format(**p)
 

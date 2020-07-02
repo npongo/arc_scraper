@@ -70,6 +70,6 @@ if __name__ == "__main__":
         # mysql_conn = MySQLClient(db_conn)  # create connection to ms sql server database
         # postgresql_conn = PostgreSQLClient(db_conn)  # create connection to ms sql server database
 
-        load_data_for_arc_service(uri, sql_server_conn, folder, create_db_objects=True)
+        load_data_for_arc_service(uri, sql_server_conn, folder, create_db_objects=False)
     except Exception as e:
         exception_logging(e)
