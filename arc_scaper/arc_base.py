@@ -8,13 +8,14 @@ from helpers import exception_logging
 # TODO add out_srid
 class ArcBase(ABC):
 
-    def __init__(self, uri, db_client):
+    def __init__(self, uri, db_client, error_logger=None):
         self._uri = uri  # if uri.endswith("/") else f"{uri}/"
         self._db_client = db_client
         self._loaded = False
         self._timeout = 50000
         self._raw_json = dict()
         self._errors = list()
+        self._error_logger = error_logger if error_logger is not None else self.db_error_logger
 
     @property
     def loaded(self):
@@ -67,7 +68,7 @@ class ArcBase(ABC):
     def add_error(self, e):
         if isinstance(e, Exception):
             self._errors.append(e)
-            exception_logging(e)
+            exception_logging(e, persist=self._error_logger)
 
     @abstractmethod
     def generate_sql(self):
@@ -80,6 +81,25 @@ class ArcBase(ABC):
     @abstractmethod
     def generate_sql_preamble(self):
         pass
+
+    def db_error_logger(self, exception):
+        exc_type, exc_obj, exc_tb = exc_info()
+        null_string = self.db_client.sql_generator_options.get('null_string', 'NULL')
+        file_name = null_string
+        line_no = null_string
+        error_type = null_string
+        if exc_tb is not None:
+            file_name = split(exc_tb.tb_frame.f_code.co_filename)[1]
+            line_no = exc_tb.tb_lineno
+            error_type = exc_type
+        p = {
+            'error_message': str(exception),
+            'file_name': file_name,
+            'line_no': line_no,
+            'error_type': error_type
+        }
+        self.db_client.log_error(p)
+
 
     def run_sql(self):
         """

@@ -19,18 +19,20 @@ class PostgreSQLClient(DBClient):
             "unique_field": "NOT NULL UNIQUE",
             "unique_constraint": 'CONSTRAINT "{folder}_{name}_{idx_name}" UNIQUE({idx_fields})',
             "primary_constraint": 'CONSTRAINT "pk_{folder}_{name}_{idx_name}" PRIMARY KEY({idx_fields})',
-            "create_spatial_index": 'CREATE INDEX "spidx_{folder}_{idx_name}_{idx_fields}" ON "{folder}"."{idx_name}" USING GIST({idx_fields})',
+            "create_spatial_index": 'CREATE INDEX "spidx_{folder}_{name}_{idx_fields}" ON "{folder}"."{name}" USING GIST({idx_fields_quote})',
             "create_index": 'CREATE INDEX "{folder}_{name}_{idx_name}" ON "{folder}"."{name}"({idx_fields})',
             "foreign_key_constraint": 'ALTER TABLE {schema}.{table_name}\nADD CONSTRAINT "fk_{name}" FOREIGN KEY({column}) REFERENCES {ref_schema}.{ref_table_name} ({ref_column})',
-            "create_schema":  'CREATE SCHEMA IF NOT EXISTS {schema}',
-            "rangeValue": 'CONSTRAINT "ck_{field}_range_domain" CHECK("{field}" BETWEEN {min_value} AND {max_value})',
-            "codedValue": 'CONSTRAINT "ck_{field}_code_domain" CHECK("{field}" IN({values}))',
+            "create_schema":  'CREATE SCHEMA IF NOT EXISTS {schema_quoted}',
+            "drop_schema": "DROP SCHEMA IF EXISTS {schema_quoted}  CASCADE",
+            "rangeValue": 'CONSTRAINT "ck_{table_name}_{field}_range_domain" CHECK({field_quoted} BETWEEN {min_value} AND {max_value})',
+            "codedValue": 'CONSTRAINT "ck_{table_name}_{field}_code_domain" CHECK({field_quoted} IN({values}))',
             "select_object_ids": "SELECT {object_id_field_name} FROM {table_name}",
             "data_insert": "INSERT INTO {table_name}({columns}) VALUES {values}",
             "data_row_insert": "({values})",
-            "spatial_data_insert": "({values}, ST_GeomFromText('{wkt}',4326))",
+            "spatial_data_insert": "({values}, ST_MakeValid(ST_GeomFromText('{wkt}',4326)))",
             "null_spatial_data_insert": "({values},NULL)",
-            "create_database": "CREATE DATABASE {database}",
+            "create_database": "", # "CREATE DATABASE {database}",
+            "drop_database": "", # "DROP DATABASE IF EXISTS {database}",
             "drop_if_exists_create_table": "DROP TABLE IF EXISTS {table_name};\n\nCREATE TABLE {table_name} (\n{fields}{constraints}\n)",
             "create_code_table_with_data": 'DROP TABLE IF EXISTS {schema}.{table_name};\n\nCREATE TABLE {schema}.{table_name} (\n{fields}\n);\n\nINSERT INTO{schema}.{table_name}("code", "name")VALUES\n{inserts}',
             "code_table_fields": '{code_field} PRIMARY KEY,\n"name" varchar({max_length}) NOT NULL',
@@ -38,7 +40,10 @@ class PostgreSQLClient(DBClient):
             "code_table_foreign_key": 'ALTER TABLE {schema}.{table_name}\nADD CONSTRAINT {fk_name} FOREIGN KEY({column_name}) REFERENCES {schema}.{code_table_name}("code")',
             "truncate_table": "TRUNCATE TABLE {table_name}",
             "insert_stats": "INSERT INTO arc.arc_set_stats(table_name,load_date,min_oid,max_oid,record_count,loaded_record_count,arc_set_url,json_def,errors)VALUES('{table_name}', '{timestamp}', {min_OID}, {max_OID}, {record_count}, {loaded_record_count}, '{url}', '{json}', {errors})",
-            "create_stats_table": "CREATE SCHEMA IF NOT EXISTS Arc;\n\nCREATE TABLE arc.arc_set_stats(\ntable_name varchar(128)\n,load_date datetime NOT NULL\n,min_oid int NULL\n,max_oid int NULL\n,record_count int NULL\n,loaded_record_count int NULL\n,arc_set_url varchar(512) NULL\n,json_def varchar NULL\n,errors varchar(512) NULL\n,CONSTRAINT pk_arc_set_stats PRIMARY KEY(table_name, load_date)\n) "
+            "create_stats_table": 'CREATE SCHEMA IF NOT EXISTS Arc;\n\nDROP TABLE IF EXISTS arc.arc_set_stats;\n\nCREATE TABLE arc.arc_set_stats(\n"table_name" varchar(128)\n,"load_date" timestamp NOT NULL\n,"min_oid" int NULL\n,"max_oid" int NULL\n,"record_count" int NULL\n,"loaded_record_count" int NULL\n,"arc_set_url" varchar(512) NULL\n,"json_def" varchar NULL\n,"errors" varchar(512) NULL\n,CONSTRAINT pk_arc_set_stats PRIMARY KEY(table_name, load_date)\n)',
+            "create_error_table": 'CREATE SCHEMA IF NOT EXISTS arc;\n\nDROP TABLE IF EXISTS arc.errors;\n\nCREATE TABLE arc.errors(id SERIAL PRIMARY KEY, "errors_message" varchar NULL, "error_type" varchar(128) NULL, "line_no" int NULL, "file_name" varchar(512) NULL)',
+            "insert_error": 'INSERT INTO arc.errors("error_message", "error_type", "line_no", "file_name") VALUES({error_message}, {error_type}, {line_no}, {file_name})'
+
             }
 
         for k, v in sql_generator_templates:
@@ -48,7 +53,7 @@ class PostgreSQLClient(DBClient):
                      "esriFieldTypeSingle": "real",
                      "esriFieldTypeString": "varchar",
                      "esriFieldTypeDate": "bigint",
-                     "esriFieldTypeGeometry": "geometry",
+                     "esriFieldTypeGeometry": "geography",
                      "esriFieldTypeOID": "int",
                      "esriFieldTypeBlob": "varbinary",
                      "esriFieldTypeGlobalID": "uniqueidentifier",
@@ -65,38 +70,42 @@ class PostgreSQLClient(DBClient):
             "quote_characters": '"',
             "max_identifier_length": -63,
             "use_lower_case_identifier": True,
+            "allow_double_symbols": True,
             'date_string_format': "%Y-%m-%dT%H:%M:%S",
             'insert_safe_characters': {"'": "''"},
             'sanitize_replacements': {'': u"`~!@#$%^*()+=][{}\\|?><,/;:'\"",
                                       "_": u".-& "},
-            'name': "postgresql_db_client"
+            'name': "postgresql_db_client",
+            'master_database': 'postgres'
         } 
         for k, v in sql_generator_options:
             self._sql_generator_options[k] = v
 
-    def exec_non_query(self, sql_statements, raise_on_fail=False):
+    def exec_non_query(self, sql_statements, autocommit=False, raise_on_fail=False):
         """
 
-        :param sql_statements: a list of sql statements to execute that doe not return a result, primarily meant for
-        DDL slq
-        :param raise_on_fail: stops execture of additional sql statements if true and raise the exception, otherwise
+        :param sql_statements: a list of sql statements to execute that doe not return a result, primaryily meant for DDL slq
+        :param autocommit: control the autocommit feature of the connection.
+        :param raise_on_fail: stops executing of additional sql statements if true and raise the exception, otherwise
         exceptions are logged
         :return: None
         """
         conn = psycopg2.connect(**self.db_conn)
+        conn.autocommit = autocommit
         cursor = conn.cursor()
         try:
             if not isinstance(sql_statements, list):
-                sql_statements = sql_statements.split(self.statement_terminator)
+                sql_statements = [s.strip() for s in sql_statements.split(self.statement_terminator) if s.strip()]
 
             for stm in sql_statements:
                 try:
-                    cursor.execute(stm.strip())
+                    cursor.execute(stm)
                 except Exception as e:
                     exception_logging(e)
                     if raise_on_fail:
                         raise e
-            conn.commit()
+            if not autocommit:
+                conn.commit()
         except Exception as e:
             conn.rollback()
             exception_logging(e)

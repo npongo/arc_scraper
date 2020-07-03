@@ -207,10 +207,16 @@ class ArcSet(ArcBase):
 
         domain_type = domain['type']
         field_type = domain['fieldType']
+        #TODO adjust table_name length to fit max
+
+        table_name = self.db_client.sanitize_name(self.sql_table_name)
+        trim_len = abs(self.db_client.sql_generator_options['max_identifier_length']) - (len(table_name) + 15)
 
         sql_template = self.db_client.sql_generator_templates.get(domain_type, "")
         p = {
-            "field": self.db_client.sanitize_and_quote_name(domain['fieldName']),
+            "table_name": table_name[:trim_len],
+            "field": self.db_client.sanitize_name(domain['fieldName']),
+            "field_quoted": self.db_client.sanitize_and_quote_name(domain['fieldName']),
             "values": ArcSet.format_code_values(domain.get('codedValues', []), field_type),
             "min_value": domain.get('minValue', 0),
             "max_value": domain.get('maxValue', 0)
@@ -230,10 +236,16 @@ class ArcSet(ArcBase):
         if any([f['type'] == "esriFieldTypeGeometry" for f in self.fields if f['name'] == arc_index['fields']]):
             return ""
 
-        p = {'idx_name': self.db_client.sanitize_name(arc_index['name']),
+        name = self.db_client.sanitize_name(self.name)
+        folder = self.db_client.sanitize_name(self.folder)
+        idx_name = self.db_client.sanitize_name(arc_index['name'])
+        trim_len = abs(self.db_client.sql_generator_options['max_identifier_length']) - \
+                   (len(idx_name) + len(folder) + 5)
+
+        p = {'idx_name': idx_name,
              'idx_fields': ",".join([self.db_client.sanitize_and_quote_name(f) for f in arc_index['fields'].split(",")]),
-             'folder': self.db_client.sanitize_name(self.folder),
-             'name': self.db_client.sanitize_name(self.name)}
+             'folder': folder,
+             'name': name[:trim_len]}
         if any([f['type'] for f in self.fields
                 if f['type'] == "esriFieldTypeOID" and arc_index['fields'] == f['name']]):
             return self.db_client.sql_generator_templates['unique_constraint'].format(**p)
@@ -249,11 +261,16 @@ class ArcSet(ArcBase):
         if field['type'] != "esriFieldTypeOID":
             raise Exception("Field must be of type esriFieldTypeOID!")
 
+        name = self.db_client.sanitize_name(self.name)
+        folder = self.db_client.sanitize_name(self.folder)
         idx_name = self.db_client.sanitize_name(field['name'])
+        max_len = abs(self.db_client.sql_generator_options['max_identifier_length'])
+        trim_len = max_len - (len(idx_name) + len(folder) + 5)
+
         p = {'idx_name': idx_name,
              'idx_fields':  ",".join([self.db_client.sanitize_and_quote_name(f) for f in idx_name.split(",")]),
-             'folder': self.db_client.sanitize_name(self.folder),
-             'name': self.db_client.sanitize_name(self.name)}
+             'folder': folder,
+             'name': name[:trim_len]}
         return self.db_client.sql_generator_templates['primary_constraint'].format(**p)
 
     def _generate_index_sql(self, arc_index):
@@ -264,12 +281,18 @@ class ArcSet(ArcBase):
         """
         if bool(arc_index.get('isUnique', False)):
             raise Exception("Unique constraints can not be generated in this context!")
+
+        name = self.db_client.sanitize_name(self.name)
+        folder = self.db_client.sanitize_name(self.folder)
         idx_name = self.db_client.sanitize_name(arc_index['name'])
+        max_len = abs(self.db_client.sql_generator_options['max_identifier_length'])
+        trim_len = max_len - (len(idx_name) + len(folder) + 5)
 
         p = {'idx_name': idx_name,
              'idx_fields': ",".join([self.db_client.sanitize_and_quote_name(f) for f in arc_index['fields'].split(",")]),
-             'folder': self.db_client.sanitize_name(self.folder),
-             'name': self.db_client.sanitize_name(self.name)}
+             'folder': folder,
+             'name': name[:max_len]
+             }
 
         if any([True for f in self.fields if f['name'] == arc_index['name'] and f['type'] == "esriFieldTypeGeometry"]
                 + [False]):
@@ -289,10 +312,17 @@ class ArcSet(ArcBase):
         if field['type'] != "esriFieldTypeGeometry":
             raise Exception("Spatial Index can not be generated for none geometry fields")
 
-        p = {'idx_name': self.db_client.sanitize_name(self.name),
-             'idx_fields': self.db_client.sanitize_and_quote_name(field['name']),
-             'folder': self.db_client.sanitize_name(self.folder),
-             'name': self.db_client.sanitize_name(self.name),
+        name = self.db_client.sanitize_name(self.name)
+        folder = self.db_client.sanitize_name(self.folder)
+        idx_name = self.db_client.sanitize_name(field['name'])
+        max_len = abs(self.db_client.sql_generator_options['max_identifier_length'])
+        trim_len = max_len - (len(idx_name) + len(folder) + 5)
+
+        p = {'idx_name': idx_name,
+             'idx_fields_quote': self.db_client.sanitize_and_quote_name(field['name']),
+             'idx_fields': self.db_client.sanitize_name(field['name']),
+             'folder': folder,
+             'name': name[:max_len],
              'xmin': self.extent['xmin'],
              'ymin': self.extent['ymin'],
              'xmax': self.extent['xmax'],

@@ -78,7 +78,8 @@ class ArcService(ArcBase):
             return ""
 
         p = {
-            'schema': self.db_client.sanitize_and_quote_name(self.name)
+            'schema': self.db_client.sanitize_name(self.name),
+            'schema_quoted': self.db_client.sanitize_and_quote_name(self.name)
         }
         sql = self.db_client.sql_generator_templates['create_schema'].\
             format(**p)

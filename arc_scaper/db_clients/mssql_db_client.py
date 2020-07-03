@@ -17,20 +17,22 @@ class SqlServerClient(DBClient):
             "esriFieldTypeString": "{name} {type}({length}) {null}",
             "esriFieldTypeDate": "[{name}] {type} {null}, \n[{name}_Date] AS (dateadd(millisecond, {name}%(60000), dateadd(minute, {name}/(60000), '1970-01-01 00:00:00.000')))",
             "unique_field": "NOT NULL UNIQUE",
-            "unique_constraint": "CONSTRAINT [{folder}_{name}_{idx_name}] UNIQUE([{idx_fields}])",
-            "primary_constraint": "CONSTRAINT [pk_{folder}_{name}_{idx_name}] PRIMARY KEY([{idx_fields}])",
-            "create_spatial_index": "CREATE SPATIAL INDEX [spidx_{folder}_{idx_name}_{idx_fields}] ON [{folder}].[{idx_name}]({idx_fields}) USING GEOMETRY_AUTO_GRID  WITH (BOUNDING_BOX = (xmin = {xmin},  ymin = {ymin},  xmax = {xmax},  ymax = {ymax})); ",
+            "unique_constraint": "CONSTRAINT [{folder}_{name}_{idx_name}] UNIQUE({idx_fields})",
+            "primary_constraint": "CONSTRAINT [pk_{folder}_{name}_{idx_name}] PRIMARY KEY({idx_fields})",
+            "create_spatial_index": "CREATE SPATIAL INDEX [spidx_{folder}_{name}_{idx_fields}] ON {folder}.{name}({idx_fields_quote}) USING GEOMETRY_AUTO_GRID  WITH (BOUNDING_BOX = (xmin = {xmin},  ymin = {ymin},  xmax = {xmax},  ymax = {ymax})); ",
             "create_index": "CREATE INDEX [{folder}_{name}_{idx_name}] ON [{folder}].[{name}]({idx_fields})",
             "foreign_key_constraint": "ALTER TABLE {schema}.{table_name}\nADD CONSTRAINT [fk_{name}] FOREIGN KEY({column}) REFERENCES {ref_schema}.{ref_table_name} ({ref_column})",
-            "create_schema": "IF SCHEMA_ID('{schema}') IS NULL EXEC('CREATE SCHEMA [{schema}]')",
-            "rangeValue": "CONSTRAINT [CK_{field}_range_domain] CHECK([{field}] BETWEEN {min_value} AND {max_value})",
-            "codedValue": "CONSTRAINT [CK_{field}_code_domain] CHECK([{field}] IN({values}))",
+            "create_schema": "IF SCHEMA_ID('{schema}') IS NULL EXEC('CREATE SCHEMA {schema_quoted}')",
+            "drop_schema": "DROP SCHEMA IF EXISTS {schema_quoted}",
+            "rangeValue": "CONSTRAINT [CK_{table_name}_{field}_range_domain] CHECK({field_quoted} BETWEEN {min_value} AND {max_value})",
+            "codedValue": "CONSTRAINT [CK_{table_name}_{field}_code_domain] CHECK({field_quoted} IN({values}))",
             "select_object_ids": "SELECT {object_id_field_name} FROM {table_name}",
             "data_insert": "INSERT INTO {table_name}({columns}) VALUES {values}",
             "data_row_insert": "({values})",
-            "spatial_data_insert": "({values}, GEOMETRY::STGeomFromText('{wkt}',4326))",
+            "spatial_data_insert": "({values}, GEOMETRY::STGeomFromText('{wkt}',4326).MakeValid())",
             "null_spatial_data_insert": "({values},NULL)",
             "create_database": "USE master\nGO\n\nIF DB_ID('{database}') IS NULL CREATE DATABASE {database}\nGO\n\nUSE [{database}]",
+            "drop_database": "IF DB_ID('{database}') IS NOT NULL DROP DATABASE {database}",
             "drop_if_exists_create_table": "IF OBJECT_ID('{table_name}') IS NOT NULL\n\tDROP TABLE {table_name}\nGO\n\nCREATE TABLE {table_name} (\n{fields}{constraints}\n)",
             "create_code_table_with_data": "IF OBJECT_ID('{schema}.{table_name}') IS NOT NULL\n\tDROP TABLE {schema}.{table_name}\nGO\n\nCREATE TABLE {schema}.{table_name} (\n{fields}\n)\nGO\n\nINSERT INTO{schema}.{table_name}([Code], [Name])VALUES\n{inserts}",
             "code_table_fields": "{code_field} PRIMARY KEY,\n[Name] nvarchar({max_length}) NOT NULL",
@@ -38,7 +40,9 @@ class SqlServerClient(DBClient):
             "code_table_foreign_key": "ALTER TABLE {schema}.{table_name}\nADD CONSTRAINT {fk_name} FOREIGN KEY({column_name}) REFERENCES {schema}.{code_table_name}(Code)",
             "truncate_table": "TRUNCATE TABLE {table_name}",
             "insert_stats": "INSERT INTO Arc.ArcSetStats(TableName,LoadDate,MinOID,MaxOID,RecordCount,LoadedRecordCount,ArcSetUrl,JsonDef,errors)VALUES('{table_name}', '{timestamp}', {min_OID}, {max_OID}, {record_count}, {loaded_record_count}, '{url}', '{json}', {errors})",
-            "create_stats_table": "IF SCHEMA_ID('{schema}') IS NULL EXEC('CREATE SCHEMA [Arc]')\nGO\n\nCREATE TABLE Arc.ArcSetStats(\nTableName varchar(128)\n,LoadDate datetime NOT NULL\n,MinOID int NULL\n,MaxOID int NULL\n,RecordCount int NULL\n,LoadedRecordCount int NULL\n,ArcSetUrl varchar(512) NULL\n,JsonDef varchar(max) NULL\n,errors varchar(512) NULL\n,CONSTRAINT PK_ArcSetStats PRIMARY KEY(TableName, LoadDate)\n) "
+            "create_stats_table": "IF SCHEMA_ID('{schema}') IS NULL EXEC('CREATE SCHEMA [Arc]')\nGO\n\nCREATE TABLE [Arc].[ArcSetStats](\n[TableName] varchar(128)\n,[LoadDate] datetime NOT NULL\n,[MinOID] int NULL\n,[MaxOID] int NULL\n,[RecordCount] int NULL\n,[LoadedRecordCount] int NULL\n,[ArcSetUrl] varchar(512) NULL\n,[JsonDef] varchar(max) NULL\n,[errors] varchar(512) NULL\n,CONSTRAINT PK_ArcSetStats PRIMARY KEY(TableName, LoadDate)\n)",
+            "create_error_table": "IF SCHEMA_ID('Arc') IS NULL EXEC('CREATE SCHEMA [Arc]')\nGO\n\nDROP TABLE IF EXISTS [arc].[errors]\nGO\n\nCREATE TABLE IF NOT EXIST arc.errors([id] int IDENTITY(1,1) NOT NULL PRIMARY KEY, [errors_message] varchar(max) NULL, [error_type] varchar(128) NULL, [line_no] int NULL, [file_name] varchar(512) NULL)",
+            "insert_error": 'INSERT INTO arc.errors([error_message], [error_type], [line_no], [file_name]) VALUES({error_message}, {error_type}, {line_no}, {file_name})'
         }
 
         for k, v in sql_generator_templates:
@@ -65,11 +69,13 @@ class SqlServerClient(DBClient):
             "quote_characters": '[]',
             "max_identifier_length": -128,
             "use_lower_case_identifier": False,
+            "allow_double_symbols": True,
             'date_string_format': "%Y-%m-%dT%H:%M:%S",
             'insert_safe_characters': {"'": "''"},
             'sanitize_replacements': {'': u"`~!@#$%^*()+=][{}\\|?><,/;:'\"",
                                       "_": u".-& "},
-            'name': 'mssql_db_client'
+            'name': 'mssql_db_client',
+            'master_database': 'master'
         }
 
         for k, v in sql_generator_options:
@@ -84,32 +90,36 @@ class SqlServerClient(DBClient):
         exceptions are logged
         :return: None
         """
-        conn = pymssql.connect(**self.db_conn)
-        if autocommit:
-            conn.autocommit(True)
-        cursor = conn.cursor()
         try:
-            if not isinstance(sql_statements, list):
-                sql_statements = sql_statements.split(self.statement_terminator)
+            conn = pymssql.connect(**self.db_conn)
+            if autocommit:
+                conn.autocommit(True)
+            cursor = conn.cursor()
+            try:
+                if not isinstance(sql_statements, list):
+                    sql_statements = [s for s in sql_statements.split(self.statement_terminator) if s.strip()]
 
-            for stm in sql_statements:
-                try:
-                    cursor.execute(stm.strip())
-                except Exception as e:
-                    exception_logging(e)
-                    if raise_on_fail:
-                        raise e
+                for stm in sql_statements:
+                    try:
+                        cursor.execute(stm.strip())
+                    except Exception as e:
+                        exception_logging(e)
+                        if raise_on_fail:
+                            raise e
 
-            if not autocommit:
-                conn.commit()
+                if not autocommit:
+                    conn.commit()
 
+            except Exception as e:
+                conn.rollback()
+                exception_logging(e)
+                raise e
+            finally:
+                cursor.close()
+                conn.close()
         except Exception as e:
-            conn.rollback()
             exception_logging(e)
             raise e
-        finally:
-            cursor.close()
-            conn.close()
 
     def exec_scalar_query(self, sql_statement):
         """

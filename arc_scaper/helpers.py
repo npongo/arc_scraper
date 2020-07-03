@@ -123,25 +123,36 @@ esriType_to_dot_net = {"esriFieldTypeSmallInteger": type(int),
 
 def sanitize_name(name, max_length=-63, underscore_leading_number=True,
                   force_lower_case=True,
+                  allow_double_symbols=True,
                   replacement_dict={'': u"`~!@#$%^*()+=][{}\\|?><,/;:'\"",
-                                    "_":  u".-& "} ):
+                                    "_":  u".-& "}):
     """
-    sanitizes a name of special characters so that it can be used as a name in a databasing system
+    sanitizes a name of special characters so that it can be used as a identifier in a databasing system
     :param name: string to be sanitized
     :param max_length: the maximum length of the sanitized name, negative numbers start from end
     :param underscore_leading_number: add an underscore in front of the name if it starts with a number
     :param force_lower_case: force the name to all lower case if true
+    :param allow_double_symbols: If false consecutive replacement symbols are truncated to 1
     :param replacement_dict: a dictionary with value the character(s) to replace with the character(s) of the key
     :return: a sanitized string
     """
     for k, v in replacement_dict.items():
         for c in v:
              name = str(name).replace(c, k)
+        x = name.replace(k+k, k)
+        while True:
+            x = name.replace(k + k, k)
+            if x == name or allow_double_symbols:
+                break
+            else:
+                name = x
 
     if max_length < 0:
         name = name[max_length:]
     else:
         name = name[:max_length]
+
+    assert len(name) <= abs(max_length)
 
     if name[0] in "1234567890" and underscore_leading_number:
         name = f"_{name}"
@@ -155,6 +166,7 @@ def sanitize_name(name, max_length=-63, underscore_leading_number=True,
 def sanitize_and_quote_name(name, quote='[]', max_length=-63,
                             underscore_leading_number=True,
                             force_lower_case=False,
+                            allow_double_symbols=True,
                             replacement_dict={'': u"`~!@#$%^*()+=][{}\\|?><,/;:'\"",
                                               "_":  u".-& "}):
     """
@@ -164,6 +176,7 @@ def sanitize_and_quote_name(name, quote='[]', max_length=-63,
     :param max_length: the maximum length of the sanitized name, negative numbers start from end
     :param underscore_leading_number: add an underscore in front of the name if it starts with a number
     :param force_lower_case: force the name to all lower case if true
+    :param allow_double_symbols: If false consecutive replacement symbols are truncated to 1
     :param replacement_dict: a dictionary with value the character(s) to replace with the character(s) of the key
     :return: a sanitized  and quoted string
     """
@@ -172,6 +185,7 @@ def sanitize_and_quote_name(name, quote='[]', max_length=-63,
     name = sanitize_name(name,
                          max_length=max_length,
                          force_lower_case=force_lower_case,
+                         allow_double_symbols=allow_double_symbols,
                          underscore_leading_number=underscore_leading_number,
                          replacement_dict=replacement_dict)
     name = name.replace(quote_start, "")

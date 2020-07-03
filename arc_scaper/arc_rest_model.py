@@ -49,9 +49,12 @@ class ArcRestModel(ArcBase):
 
             sql_stm = self.db_client.statement_terminator.join([s.generate_sql().strip() for s in self._arc_services
                                  if bool(s.generate_sql().replace(self.db_client.statement_terminator, "").strip())])
-            p = {'database': self._database}
-            sql = self.db_client.sql_generator_templates['create_database'].format(**p)
-            sql += self.db_client.statement_terminator if bool(sql) else "" + self.db_client.sql_generator_templates['create_stats_table']
+            sql = ""
+            if self.db_client.name != "mysql_db_client":
+                p = {'database': self._database}
+                sql = self.db_client.sql_generator_templates['create_database'].format(**p)
+            sql += (self.db_client.statement_terminator if bool(sql) else "") + self.db_client.sql_generator_templates['create_stats_table']
+            sql += self.db_client.statement_terminator + self.db_client.sql_generator_templates['create_error_table']
             sql += self.db_client.statement_terminator + self.generate_sql_preamble()
             sql += self.db_client.statement_terminator + sql_stm
             return sql
@@ -97,14 +100,12 @@ class ArcRestModel(ArcBase):
         with open(path, 'w+') as f:
             f.write(sql)
 
-    def run_sql(self, db_master='master'):
+    def run_sql(self):
         """
 
-        :param sep:
-        :param db_master:
         :return:
         """
-
+        db_master = self.db_client.sql_generator_options['master_database']
         if self.db_client.db_conn.get('database', '') == db_master:
             database = urlparse(self.uri).netloc.replace(".", "_")
         else:

@@ -29,7 +29,7 @@ def init_table_with_data(sql_client, init_table):
                                          ("SELECT 'MY_TEST'", 'MY_TEST'),
                                          ("SELECT CAST('2020-01-01' AS Datetime)", datetime(2020, 1, 1)),
                                          ("SELECT CASE WHEN COUNT(*)>0 THEN 1 ELSE 0 END FROM INFORMATION_SCHEMA.TABLES", 1)])
-def test_exec_scalar_query(sql_client, sql, expected):
+def test_exec_scalar_query(sql_client, init_table_with_data, sql, expected):
     result = sql_client.exec_scalar_query(sql)
     assert result == expected
 
@@ -72,8 +72,20 @@ def test_quote_name(sql_client, name, expected):
     assert result == expected
 
 
-@pytest.mark.parametrize("name, expected", [('1?.*', '`_1_`'), ('na[]me', '`name`'), ('[name]', '`name`')])
+@pytest.mark.parametrize("name, expected", [('1?.*', '`_1_`'), ('na[]me', '`name`'), ('[na&&me]', '`na_me`')])
 def test_sanitize_and_quote_name(sql_client, name, expected):
     result = sql_client.sanitize_and_quote_name(name)
     assert result == expected
 
+
+@pytest.mark.parametrize("name", ["table_name", "null_string", "esriFieldTypeOID", "esriFieldTypeString",
+                                  "esriFieldTypeDate", "unique_field", "unique_constraint",
+                                  "primary_constraint", "create_spatial_index", "create_index",
+                                  "foreign_key_constraint", "create_schema", "rangeValue", "codedValue",
+                                  "select_object_ids", "data_insert", "data_row_insert", "spatial_data_insert",
+                                  "null_spatial_data_insert", "create_database", "drop_if_exists_create_table",
+                                  "create_code_table_with_data", "code_table_fields", "insert_code_table_row",
+                                  "code_table_foreign_key", "truncate_table",
+                                  "insert_stats", "create_stats_table"])
+def test_sql_generator_templates(sql_client, name):
+    assert name in sql_client.sql_generator_templates

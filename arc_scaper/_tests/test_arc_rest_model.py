@@ -8,8 +8,14 @@ import pytest
 @pytest.fixture(autouse=True)
 def arc_rest_model(db_type):
     uri = "http://geoportal.menlhk.go.id/arcgis/rest"
-    database = 'test_Indonesia_menlhk'
     sql_client = get_db_conn(db_type)
+    database = sql_client.db_conn['database']
+    sql_client.db_conn['database'] = sql_client.sql_generator_options['master_database']
+    drop_database = sql_client.sql_generator_templates['drop_database'].format(database=database)
+    sql_client.exec_non_query(drop_database, autocommit=True)
+    create_database = sql_client.sql_generator_templates['create_database'].format(database=database)
+    sql_client.exec_non_query(create_database, autocommit=True)
+    sql_client.db_conn['database'] = database
     return ArcRestModel(uri, database, sql_client)
 
 
@@ -90,28 +96,16 @@ def test_save_sql_script(monkeypatch, arc_rest_model, file):
     assert path.isfile(file)
 
 
-@pytest.mark.parametrize("db_type, db_master", [('mssql', 'master'),
-                                                ('mysql', 'sys'),
-                                                ('postgresql', 'postgres')])
-def test_run_sql_script(monkeypatch, db_type, db_master, arc_rest_model):
+@pytest.mark.parametrize("db_type", ['mssql', 'mysql', 'postgresql'])
+def test_run_sql_script(monkeypatch, db_type, arc_rest_model):
     monkeypatch.setattr(requests, 'get', mock_get_return)
     arm = arc_rest_model
-
-    db = arc_rest_model.db_client.db_conn.get('database', 'Test_Indonesia_menlhk')
-    sql = f'drop database {db}'
-    if db_type == "mysql":
-        sql = f"DROP DATABASE IF EXISTS {db}"
-    if db_type == 'mssql':
-        sql = f"IF DB_ID('{db}') IS NOT NULL DROP DATABASE {db}"
-    arc_rest_model.db_client.db_conn['database'] = db_master
-    arc_rest_model.db_client.exec_non_query(sql, autocommit=True)
-    arc_rest_model.db_client.db_conn['database'] = db
-
     try:
-        arm.run_sql(db_master=db_master)
+        arm.run_sql()
     except:
         assert False
 
-    sql = "select count(*) from sys.tables"
+    sql = "select count(*) from information_schema.tables \
+           where table_schema in('arc','klhk','klhk_en','sinav','test','publik','other')"
     result = arc_rest_model.db_client.exec_scalar_query(sql)
-    assert result == 141
+    assert result == 143

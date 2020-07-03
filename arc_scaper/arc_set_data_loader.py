@@ -281,7 +281,7 @@ class ArcSetDataLoader:
         query_result = self.try_load_records(query)
         if query_result:
             self.__tries = 0
-            print(f"Successfully downloaded {self.__result_record_count}  records for  {self.arc_set.name} !")
+            print(f"Successfully tried to downloaded {len(query_result.get('features',[]))}  records for  {self.arc_set.name} !")
             rows_inserted = self.parse_and_save_json_data(query_result)
             if rows_inserted:
                 return rows_inserted
