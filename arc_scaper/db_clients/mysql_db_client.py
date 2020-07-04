@@ -71,12 +71,14 @@ class MySQLClient(DBClient):
             "max_identifier_length": -63,
             "use_lower_case_identifier": True,
             "allow_double_symbols": True,
-            'date_string_format': "%Y-%m-%dT%H:%M:%S",
             'insert_safe_characters': {"'": "''"},
             'sanitize_replacements': {'': u"`~!@#$%^*()+=][{}\\|?><,/;:'\"",
                                       "_": u".-& "},
             'name': "mysql_db_client",
-            'master_database': 'sys'
+            'master_database': 'sys',
+            'date_string_format': "%Y-%m-%dT%H:%M:%S",
+            'text_qoute': "'",
+            'escape_characters': {"'": "''"}
         }
          
         for k, v in sql_generator_options:

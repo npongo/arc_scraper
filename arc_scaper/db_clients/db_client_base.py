@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from helpers import sanitize_and_quote_name, exception_logging, sanitize_name
+from helpers import sanitize_and_quote_name, exception_logging, sanitize_name, escape_insert
 from datetime import datetime
 
 
@@ -146,3 +146,17 @@ class DBClient(ABC):
         """
         error_template = self.sql_generator_templates['insert_error'].format(**error_att)
         self.exec_non_query(error_template)
+
+    def escape_insert(self, row):
+        """
+
+        :param row: a row of data as either a list of values or a dictionary of columns(keys) and values
+        :return: row escaped and quoted
+        """
+        date_string_format = self.sql_generator_options['date_string_format']
+        text_qoute = self.sql_generator_options['text_qoute']
+        escape_characters = self.sql_generator_options['escape_characters']
+        new_row = escape_insert(row, text_qoute=text_qoute,
+                                escape_characters=escape_characters,
+                                date_formater=date_string_format)
+        return new_row

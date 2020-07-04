@@ -76,7 +76,9 @@ class PostgreSQLClient(DBClient):
             'sanitize_replacements': {'': u"`~!@#$%^*()+=][{}\\|?><,/;:'\"",
                                       "_": u".-& "},
             'name': "postgresql_db_client",
-            'master_database': 'postgres'
+            'master_database': 'postgres',
+            'text_qoute': "'",
+            'escape_characters': {"'": "''"}
         } 
         for k, v in sql_generator_options:
             self._sql_generator_options[k] = v

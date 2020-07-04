@@ -38,6 +38,7 @@ class ArcSetDataLoader:
         self.__millis = 0
         self.__t0 = 0
         self.__http_success_record_no = {}
+        self.__error_persist = arc_set.db_error_logger
     # __sql_generator_templates = {
     #     "insert_stats": "INSERT INTO TableStats(TableName, MinOID, MaxOID, RecordCount, LoadedRecordCount) \
     #     VALUES('{table_name}',{min_OID},{max_OID},{record_count},{loaded_record_count}}"
@@ -75,7 +76,7 @@ class ArcSetDataLoader:
     
     def __add_error(self, e):
         self.__errors.append(e)
-        exception_logging(e)
+        exception_logging(e, self.__error_persist)
         
     @property
     def arc_set(self):

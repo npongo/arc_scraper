@@ -5,6 +5,7 @@ from os.path import split
 import requests
 from helpers import exception_logging
 
+
 # TODO add out_srid
 class ArcBase(ABC):
 
@@ -15,7 +16,7 @@ class ArcBase(ABC):
         self._timeout = 50000
         self._raw_json = dict()
         self._errors = list()
-        self._error_logger = error_logger if error_logger is not None else self.db_error_logger
+        self._error_logger = error_logger if error_logger is not None else print
 
     @property
     def loaded(self):
@@ -91,15 +92,15 @@ class ArcBase(ABC):
         if exc_tb is not None:
             file_name = split(exc_tb.tb_frame.f_code.co_filename)[1]
             line_no = exc_tb.tb_lineno
-            error_type = exc_type
+            error_type = str(exc_type)
         p = {
             'error_message': str(exception),
             'file_name': file_name,
             'line_no': line_no,
             'error_type': error_type
         }
+        p = self.db_client.escape_insert(p)
         self.db_client.log_error(p)
-
 
     def run_sql(self):
         """

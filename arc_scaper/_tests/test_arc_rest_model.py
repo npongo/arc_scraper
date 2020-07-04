@@ -108,4 +108,4 @@ def test_run_sql_script(monkeypatch, db_type, arc_rest_model):
     sql = "select count(*) from information_schema.tables \
            where table_schema in('arc','klhk','klhk_en','sinav','test','publik','other')"
     result = arc_rest_model.db_client.exec_scalar_query(sql)
-    assert result == 143
+    assert result == 143 or result == 145

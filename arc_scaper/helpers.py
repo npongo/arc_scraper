@@ -3,7 +3,7 @@ from uuid import UUID
 from sys import exc_info
 from os.path import split
 from collections import defaultdict
-
+from datetime import datetime
 
 def validate_url(url):
     """
@@ -204,3 +204,29 @@ def exception_logging(e, persist=print):
         persist(e, exc_type, f_name, line_no)
     except:
         persist(e)
+
+
+def escape_value(value, text_qoute="'",  escape_characters={"'": "''"}, date_formater="%Y-%m-%dT%H:%M:%S"):
+    if str(value).isnumeric():
+        return str(value)
+    if isinstance(value, datetime):
+        return value.strftime(date_formater)
+    for k, v in escape_characters.items():
+        value = value.replace(k, v)
+    value = text_qoute[0] + value + (text_qoute + text_qoute)[1]
+    return value
+
+
+def escape_insert(row, text_qoute="'", escape_characters={"'": "''"}, date_formater="%Y-%m-%dT%H:%M:%S"):
+    if isinstance(row, dict):
+        for k, v in row.items():
+            row[k] = escape_value(v,
+                                  text_qoute=text_qoute,
+                                  escape_characters=escape_characters,
+                                  date_formater=date_formater)
+        return row
+    out_row = list()
+    if isinstance(row, list):
+        return [escape_value(v, text_qoute=text_qoute,
+                             escape_characters=escape_characters,
+                             date_formater=date_formater) for v in row]

@@ -41,7 +41,7 @@ class SqlServerClient(DBClient):
             "truncate_table": "TRUNCATE TABLE {table_name}",
             "insert_stats": "INSERT INTO Arc.ArcSetStats(TableName,LoadDate,MinOID,MaxOID,RecordCount,LoadedRecordCount,ArcSetUrl,JsonDef,errors)VALUES('{table_name}', '{timestamp}', {min_OID}, {max_OID}, {record_count}, {loaded_record_count}, '{url}', '{json}', {errors})",
             "create_stats_table": "IF SCHEMA_ID('{schema}') IS NULL EXEC('CREATE SCHEMA [Arc]')\nGO\n\nCREATE TABLE [Arc].[ArcSetStats](\n[TableName] varchar(128)\n,[LoadDate] datetime NOT NULL\n,[MinOID] int NULL\n,[MaxOID] int NULL\n,[RecordCount] int NULL\n,[LoadedRecordCount] int NULL\n,[ArcSetUrl] varchar(512) NULL\n,[JsonDef] varchar(max) NULL\n,[errors] varchar(512) NULL\n,CONSTRAINT PK_ArcSetStats PRIMARY KEY(TableName, LoadDate)\n)",
-            "create_error_table": "IF SCHEMA_ID('Arc') IS NULL EXEC('CREATE SCHEMA [Arc]')\nGO\n\nDROP TABLE IF EXISTS [arc].[errors]\nGO\n\nCREATE TABLE IF NOT EXIST arc.errors([id] int IDENTITY(1,1) NOT NULL PRIMARY KEY, [errors_message] varchar(max) NULL, [error_type] varchar(128) NULL, [line_no] int NULL, [file_name] varchar(512) NULL)",
+            "create_error_table": "IF SCHEMA_ID('Arc') IS NULL EXEC('CREATE SCHEMA [Arc]')\nGO\n\nDROP TABLE IF EXISTS [arc].[errors]\nGO\n\nCREATE TABLE arc.errors([id] int IDENTITY(1,1) NOT NULL PRIMARY KEY, [errors_message] varchar(max) NULL, [error_type] varchar(128) NULL, [line_no] int NULL, [file_name] varchar(512) NULL)",
             "insert_error": 'INSERT INTO arc.errors([error_message], [error_type], [line_no], [file_name]) VALUES({error_message}, {error_type}, {line_no}, {file_name})'
         }
 
@@ -75,7 +75,9 @@ class SqlServerClient(DBClient):
             'sanitize_replacements': {'': u"`~!@#$%^*()+=][{}\\|?><,/;:'\"",
                                       "_": u".-& "},
             'name': 'mssql_db_client',
-            'master_database': 'master'
+            'master_database': 'master',
+            'text_qoute': "'",
+            'escape_characters': {"'": "''"}
         }
 
         for k, v in sql_generator_options:
