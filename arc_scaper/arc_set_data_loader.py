@@ -3,10 +3,11 @@ from arc_query_builder import ArcQueryBuilder
 from arc_enum import ArcFormat, ArcOutStatistic, ArcStatisticType
 from requests import get
 from helpers import json_to_wkt, exception_logging, esri_geometry_to_empty_wtk
-from time import clock
+from time import time
 from json import dumps
 from datetime import datetime
-
+# from shapely.validation import make_valid
+# from shapely.geometry import multipolygon, point, multilinestring
 
 class ArcSetDataLoader:
 
@@ -18,7 +19,7 @@ class ArcSetDataLoader:
         self.__arc_set = arc_set
         self.__db_client = arc_set.db_client
         self.__result_record_count = result_record_count
-        self.__max_result_record_count = max_result_record_count
+        self.__max_result_record_count = min(max_result_record_count, arc_set.max_record_count)
         self.__max_tries = max_tries
         self.__target_time = target_time
         self.__errors = list()
@@ -108,7 +109,7 @@ class ArcSetDataLoader:
 
     @max_result_record_count.setter
     def max_result_record_count(self, value):
-        self.__max_result_record_count = value
+        self.__max_result_record_count = min(value, self.arc_set.max_record_count)
 
     @property
     def max_tries(self):
@@ -296,13 +297,13 @@ class ArcSetDataLoader:
         try:
             # self.__timer = self.init_timer()
             # self.__timer.start()
-            self.__t0 = clock()
+            self.__t0 = time()
             response = get(query_builder)
             if response.ok and "error" not in response.json():
 
                 self.__result_offset += self.__result_record_count
                 # millis = self.__stop_timer()
-                elapsed = clock()-self.__t0
+                elapsed = time()-self.__t0
                 # learning the optimal number of records to try and download
 
                 millis_per_record = (elapsed*1000)/self.__result_record_count
@@ -311,13 +312,14 @@ class ArcSetDataLoader:
 
                 opt_record_no = min([int(self.__target_time/millis_per_record), self.max_result_record_count])
 
-                self.__result_record_count = int((sum([k*float(v) for k, v in self.__http_success_record_no.items()])
-                                                 + opt_record_no) /
-                                                 (sum([v for k, v in self.__http_success_record_no.items()]) + 1/millis_per_record))
+                self.__result_record_count = min(self.max_result_record_count, int((sum([k*float(v) for k, v in self.__http_success_record_no.items()])
+                                                 + (opt_record_no*(1/self.__target_time))) /
+                                                 (sum([v for k, v in self.__http_success_record_no.items()]) + 1/millis_per_record)))
+                self.__target_time = self.__target_time * 1.1
                 return response.json()
             elif "error" in response.json():
-                elapsed = clock() - self.__t0
-                self.__target_time = min(elapsed * 1000 * .75, 30000)
+                elapsed = time() - self.__t0
+                self.__target_time = min(elapsed * 1000 * .75, self.__target_time, 30000)
                 raise Exception(response.text)
             else:
                 raise Exception(response.text)
@@ -376,6 +378,8 @@ class ArcSetDataLoader:
                     if geometry_type:
                         geom = f.get('geometry', '')
                         wkt = json_to_wkt.get(geometry_type, non_geom)(geom)
+                        # TODO: when next version of pygeos or shapely comes out add make_valid to fix any invalid geometries.
+
                         if wkt.strip() in ["", "()"]:
                             wkt = non_geom('')   # ensure that wkt is not null
                         #    inserts.append(null_spatial_data_insert.format(values=values))

@@ -84,23 +84,27 @@ class ArcBase(ABC):
         pass
 
     def db_error_logger(self, exception):
-        exc_type, exc_obj, exc_tb = exc_info()
-        null_string = self.db_client.sql_generator_options.get('null_string', 'NULL')
-        file_name = null_string
-        line_no = null_string
-        error_type = null_string
-        if exc_tb is not None:
-            file_name = split(exc_tb.tb_frame.f_code.co_filename)[1]
-            line_no = exc_tb.tb_lineno
-            error_type = str(exc_type)
-        p = {
-            'error_message': str(exception),
-            'file_name': file_name,
-            'line_no': line_no,
-            'error_type': error_type
-        }
-        p = self.db_client.escape_insert(p)
-        self.db_client.log_error(p)
+        try:
+            exc_type, exc_obj, exc_tb = exc_info()
+            null_string = self.db_client.sql_generator_options.get('null_string', 'NULL')
+            file_name = null_string
+            line_no = null_string
+            error_type = null_string
+            if exc_tb is not None:
+                file_name = split(exc_tb.tb_frame.f_code.co_filename)[1]
+                line_no = exc_tb.tb_lineno
+                error_type = str(exc_type)
+            p = {
+                'error_message': str(exception),
+                'file_name': file_name,
+                'line_no': line_no,
+                'error_type': error_type
+            }
+            p = self.db_client.escape_insert(p)
+            self.db_client.log_error(p)
+        except Exception as e:
+            print(f"Original Error: {exception}")
+            print(e)
 
     def run_sql(self):
         """

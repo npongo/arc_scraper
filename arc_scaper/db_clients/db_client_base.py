@@ -140,7 +140,7 @@ class DBClient(ABC):
 
     def log_error(self, error_att):
         """
-        logs and excemption into the database.
+        logs and exception into the database.
         :param error_att: dictionary of error column values
         :return: None
         """

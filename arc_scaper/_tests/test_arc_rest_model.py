@@ -92,7 +92,6 @@ def test_save_sql_script(monkeypatch, arc_rest_model, file):
     monkeypatch.setattr(requests, 'get', mock_get_return)
     arm = arc_rest_model
     arm.save_sql_script(file)
-
     assert path.isfile(file)
 
 

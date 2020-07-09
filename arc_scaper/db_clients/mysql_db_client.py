@@ -41,7 +41,7 @@ class MySQLClient(DBClient):
             "truncate_table": "TRUNCATE TABLE {table_name}",
             "insert_stats": "INSERT INTO arc.arc_set_stats(table_name,load_date,min_oid,max_oid,record_count,loaded_record_count,arc_set_url,json_def,errors)VALUES('{table_name}', '{timestamp}', {min_OID}, {max_OID}, {record_count}, {loaded_record_count}, '{url}', '{json}', {errors})",
             "create_stats_table": "CREATE SCHEMA IF NOT EXISTS `arc`;\n\nDROP TABLE IF EXISTS `arc`.`arc_set_stats`;\n\nCREATE TABLE `arc`.`arc_set_stats`(\n`table_name` varchar(128)\n,`load_date` datetime NOT NULL\n,`min_oid` int NULL\n,`max_oid` int NULL\n,`record_count` int NULL\n,`loaded_record_count` int NULL\n,`arc_set_url` varchar(512) NULL\n,`json_def` MEDIUMTEXT NULL\n,`errors` varchar(512) NULL\n,CONSTRAINT `pk_arc_set_stats` PRIMARY KEY(`table_name`, `load_date`)\n)",
-            "create_error_table": 'CREATE SCHEMA IF NOT EXISTS `arc`;\n\nDROP TABLE IF EXISTS `arc`.`errors`;\n\nCREATE TABLE IF NOT EXISTS `arc`.`errors`(`id` MEDIUMINT NOT NULL AUTO_INCREMENT PRIMARY KEY, `errors_message` text NULL, `error_type` varchar(128) NULL, `line_no` int NULL, `file_name` text NULL)',
+            "create_error_table": 'CREATE SCHEMA IF NOT EXISTS `arc`;\n\nDROP TABLE IF EXISTS `arc`.`errors`;\n\nCREATE TABLE IF NOT EXISTS `arc`.`errors`(`id` MEDIUMINT NOT NULL AUTO_INCREMENT PRIMARY KEY, `error_message` text NULL, `error_type` varchar(128) NULL, `line_no` int NULL, `file_name` text NULL)',
             "insert_error": "INSERT INTO arc.errors('error_message', 'error_type', 'line_no', 'file_name') VALUES({error_message}, {error_type}, {line_no}, {file_name})"
 
         }

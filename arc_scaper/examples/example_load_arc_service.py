@@ -4,13 +4,13 @@ from db_clients.mysql_db_client import MySQLClient
 from db_clients.postgresql_db_client import PostgreSQLClient
 from arc_set_data_loader import ArcSetDataLoader
 from helpers import exception_logging
+from _tests.secrets import db_conns
 
-
-def load_data_for_arc_service(uri, db_conn, schema, create_db_objects=False):
+def load_data_for_arc_service(uri, db_client, schema, create_db_objects=False):
     try:
 
         arc_service = ArcService(uri, schema, None,
-                                 db_conn)  # create the arc service and load all the map servers and layers
+                                 db_client)  # create the arc service and load all the map servers and layers
 
         if create_db_objects:
             p = {
@@ -43,14 +43,15 @@ def run_example():
 
         # database configuration for mssql
         # change server to match your server and database
-        db_conn = {'server': '.\\npongo16',
-                   'database': 'test_Indonesia_menlhk'}
+        #db_conn = {'server': '.\\npongo16',
+        #          'database': 'indonesia_menlhk_klhk'}
+        db_conn = db_conns['mssql']  # dictionary of connection dictionary settings for the different dbs
 
-        sql_server_conn = SqlServerClient(db_conn)  # create connection to ms sql server database
-        # mysql_conn = MySQLClient(db_conn)  # create connection to ms sql server database
-        # postgresql_conn = PostgreSQLClient(db_conn)  # create connection to ms sql server database
+        db_client = SqlServerClient(db_conn)  # create connection to ms sql server database
+        # db_client = MySQLClient(db_conn)  # create connection to MySql database
+        # db_client = PostgreSQLClient(db_conn)  # create connection to postgres database
 
-        load_data_for_arc_service(uri, sql_server_conn, folder, create_db_objects=True)
+        load_data_for_arc_service(uri, db_client, folder, create_db_objects=True)
     except Exception as e:
         exception_logging(e)
 
@@ -63,13 +64,13 @@ if __name__ == "__main__":
 
         # database configuration for mssql
         # change server to match your server and database
-        db_conn = {'server': '.\\npongo16',
-                   'database': 'test_Indonesia_menlhk'}
+        #db_conn = {'server': '.\\npongo16',
+        #          'database': 'indonesia_menlhk_klhk'}
+        db_conn = db_conns['mssql']  # dictionary of connection dictionary settings for the different dbs
+        db_client = SqlServerClient(db_conn)  # create connection to ms sql server database
+        # db_client = MySQLClient(db_conn)  # create connection to ms sql server database
+        # db_client = PostgreSQLClient(db_conn)  # create connection to ms sql server database
 
-        sql_server_conn = SqlServerClient(db_conn)  # create connection to ms sql server database
-        # mysql_conn = MySQLClient(db_conn)  # create connection to ms sql server database
-        # postgresql_conn = PostgreSQLClient(db_conn)  # create connection to ms sql server database
-
-        load_data_for_arc_service(uri, sql_server_conn, folder, create_db_objects=False)
+        load_data_for_arc_service(uri, db_client, folder, create_db_objects=False)
     except Exception as e:
         exception_logging(e)
