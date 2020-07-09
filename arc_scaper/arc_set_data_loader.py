@@ -1,7 +1,7 @@
 from threading import Timer
 from arc_query_builder import ArcQueryBuilder
 from arc_enum import ArcFormat, ArcOutStatistic, ArcStatisticType
-from requests import get
+from requests import get, Session
 from helpers import json_to_wkt, exception_logging, esri_geometry_to_empty_wtk
 from time import time
 from json import dumps
@@ -9,13 +9,16 @@ from datetime import datetime
 # from shapely.validation import make_valid
 # from shapely.geometry import multipolygon, point, multilinestring
 
+
 class ArcSetDataLoader:
 
     def __init__(self, arc_set,
                  result_record_count=10,
                  max_result_record_count=100,
                  max_tries=1,
-                 target_time=10000):
+                 target_time=30000,  # milliseconds
+                 timeout=30  # seconds
+                 ):
         self.__arc_set = arc_set
         self.__db_client = arc_set.db_client
         self.__result_record_count = result_record_count
@@ -33,13 +36,14 @@ class ArcSetDataLoader:
         self.__object_id_field_name = "FID"
         self.__record_count = 0
         self.__result_offset = 0
-        self.__timeout = 50000
+        self.__timeout = timeout
         self.__tries = 0
         self.__loaded_record_count = 0
         self.__millis = 0
         self.__t0 = 0
         self.__http_success_record_no = {}
         self.__error_persist = arc_set.db_error_logger
+        self.__get = Session().get
     # __sql_generator_templates = {
     #     "insert_stats": "INSERT INTO TableStats(TableName, MinOID, MaxOID, RecordCount, LoadedRecordCount) \
     #     VALUES('{table_name}',{min_OID},{max_OID},{record_count},{loaded_record_count}}"
@@ -181,7 +185,7 @@ class ArcSetDataLoader:
             return False
 
     def __try_get_record_count(self, query):
-        response = get(query)
+        response = self.__get(query)
         if response.ok and "error" not in response.json():
             json = response.json()
             self.__record_count = int(json['Count'])
@@ -190,7 +194,7 @@ class ArcSetDataLoader:
             return False
 
     def __try_get_stats(self, query):
-        response = get(query)
+        response = self.__get(query)
         if response.ok and "error" not in response.json():
             json = response.json()
             feat = json['feature'][0]
@@ -203,7 +207,7 @@ class ArcSetDataLoader:
             return False
 
     def __try_get_object_ids(self, query):
-        response = get(query)
+        response = self.__get(query)
         if response.ok and "error" not in response.json():
             json = response.json()
             self.__OIDs = set(json.get('objectIds', set()))
@@ -298,7 +302,7 @@ class ArcSetDataLoader:
             # self.__timer = self.init_timer()
             # self.__timer.start()
             self.__t0 = time()
-            response = get(query_builder)
+            response = self.__get(query_builder, timeout=self.__timeout)
             if response.ok and "error" not in response.json():
 
                 self.__result_offset += self.__result_record_count
@@ -312,10 +316,10 @@ class ArcSetDataLoader:
 
                 opt_record_no = min([int(self.__target_time/millis_per_record), self.max_result_record_count])
 
-                self.__result_record_count = min(self.max_result_record_count, int((sum([k*float(v) for k, v in self.__http_success_record_no.items()])
+                self.__result_record_count = max(1, min(self.max_result_record_count, int((sum([k*float(v) for k, v in self.__http_success_record_no.items()])
                                                  + (opt_record_no*(1/self.__target_time))) /
-                                                 (sum([v for k, v in self.__http_success_record_no.items()]) + 1/millis_per_record)))
-                self.__target_time = self.__target_time * 1.1
+                                                 (sum([v for k, v in self.__http_success_record_no.items()]) + 1/millis_per_record))))
+                self.__target_time = min(self.__target_time * 1.1, 30000)
                 return response.json()
             elif "error" in response.json():
                 elapsed = time() - self.__t0
@@ -330,7 +334,7 @@ class ArcSetDataLoader:
                 self.__add_error(Exception("Error on try_load_records for query {0}, message:{1}"
                                            .format(query_builder, e)))
                 if self.__result_record_count > 1:
-                    self.__result_record_count = int(self.__result_record_count * .3) + 1
+                    self.__result_record_count = max(1, int(self.__result_record_count * .3))
                     # self.try_load_records(query_builder)
                 elif self.__tries < self.__max_tries:
 
@@ -361,7 +365,7 @@ class ArcSetDataLoader:
                     return f"{row}"
 
                 p = {
-                    'table_name': self.arc_set.sql_table_name,
+                    'table_name': self.arc_set.sql_full_table_name,
                     'columns': ",".join(col_names),
                     'values': '{0}'
                 }
@@ -402,7 +406,7 @@ class ArcSetDataLoader:
     def save_stats_to_db(self):
         try:
             p = {
-                'table_name': self.arc_set.sql_table_name,
+                'table_name': self.arc_set.sql_full_table_name,
                 'timestamp': self.__db_client.string_date(datetime.now()),
                 'min_OID': self.__min_OID,
                 'max_OID': self.__max_OID,
@@ -423,7 +427,7 @@ class ArcSetDataLoader:
     def __get_object_ids_from_db(self):
         try:
             p = {
-                'table_name': self.__arc_set.sql_table_name,
+                'table_name': self.__arc_set.sql_full_table_name,
                 'object_id_field_name': self.__object_id_field_name
             }
             sql = self.__db_client.sql_generator_templates['select_object_ids'].format(**p)

@@ -18,9 +18,11 @@ def create_db_objects(schema, db_client):
     db_client.exec_non_query(sql, autocommit=True)  # set autocommit to True to run DDL
 
 
-def load_data_for_arc_layer(uri, db_client, schema, create_db_objects=False, load_data=True):
+def load_data_for_arc_layer(params, db_client, schema, create_db_objects=False, load_data=True):
     try:
+        uri = params['uri']
         arc_layer = ArcLayer(uri, schema, db_client)  # create the arc service and load all the map servers and layers
+        del params['uri']
 
         if create_db_objects:
             header_sql = arc_layer.generate_sql_preamble()
@@ -33,7 +35,7 @@ def load_data_for_arc_layer(uri, db_client, schema, create_db_objects=False, loa
 
         # look from the layers and load their data
         if load_data:
-            loader = ArcSetDataLoader(arc_layer, result_record_count=2)
+            loader = ArcSetDataLoader(arc_layer, **params)
             loader.load_data()
 
     except Exception as e:
@@ -65,40 +67,207 @@ if __name__ == "__main__":
     try:
 
         uris = [
-                'http://geoportal.menlhk.go.id/arcgis/rest/services/KLHK/Penutupan_Lahan_Tahun_2014/MapServer/0',
-                'http://geoportal.menlhk.go.id/arcgis/rest/services/KLHK/Penutupan_Lahan_Tahun_2015/MapServer/0',
-                'http://geoportal.menlhk.go.id/arcgis/rest/services/KLHK/Penutupan_Lahan_Tahun_2018_/MapServer/0',
-                'http://geoportal.menlhk.go.id/arcgis/rest/services/KLHK/Penutupan_Lahan_Tahun_2019/MapServer/0',
+                {'uri': 'http://geoportal.menlhk.go.id/arcgis/rest/services/KLHK/Penutupan_Lahan_Tahun_2015/MapServer/0',
+                 'result_record_count': 2,
+                 'max_result_record_count': 10,
+                 'max_tries': 1,
+                 'target_time': 50000,
+                 'timeout': 30
+                 },
+                {'uri': 'http://geoportal.menlhk.go.id/arcgis/rest/services/KLHK/Penutupan_Lahan_Tahun_2018_/MapServer/0',
+                 'result_record_count': 10,
+                 'max_result_record_count': 100,
+                 'max_tries': 1,
+                 'target_time': 50000,
+                 'timeout': 30
+                 },
+                {'uri':  'http://geoportal.menlhk.go.id/arcgis/rest/services/KLHK/Penutupan_Lahan_Tahun_2019/MapServer/0',
+                 'result_record_count': 10,
+                 'max_result_record_count': 100,
+                 'max_tries': 1,
+                 'target_time': 50000,
+                 'timeout': 10
+                 },
+                {'uri': 'http://geoportal.menlhk.go.id/arcgis/rest/services/KLHK/Penutupan_Lahan_Tahun_2014/MapServer/0',
+                 'result_record_count': 10,
+                 'max_result_record_count': 100,
+                 'max_tries': 1,
+                 'target_time': 50000,
+                 'timeout': 10
+                 },
 
-                'http://geoportal.menlhk.go.id/arcgis/rest/services/KLHK/Pelepasan_Kawasan_Hutan/MapServer/0',
-                'http://geoportal.menlhk.go.id/arcgis/rest/services/KLHK/Pelepasan_Kawasan_Hutan_untuk_Transmigrasi/MapServer/0',
+                 {'uri': 'http://geoportal.menlhk.go.id/arcgis/rest/services/KLHK/Pelepasan_Kawasan_Hutan/MapServer/0',
+                 'result_record_count': 10,
+                 'max_result_record_count': 100,
+                 'max_tries': 1,
+                 'target_time': 50000,
+                 'timeout': 10
+                 },
+                {'uri': 'http://geoportal.menlhk.go.id/arcgis/rest/services/KLHK/Pelepasan_Kawasan_Hutan_untuk_Transmigrasi/MapServer/0',
+                 'result_record_count': 10,
+                 'max_result_record_count': 100,
+                 'max_tries': 1,
+                 'target_time': 50000,
+                 'timeout': 10
+                 },
 
-                'http://geoportal.menlhk.go.id/arcgis/rest/services/KLHK/PIPPIB_2019/MapServer/0',
-                'http://geoportal.menlhk.go.id/arcgis/rest/services/KLHK/PIPPIB_2020_Periode1/MapServer/0',  # url of arc service folder
-                'http://geoportal.menlhk.go.id/arcgis/rest/services/KLHK/Pinjam_Pakai_Kawasan_Hutan/MapServer/0',
-                'http://geoportal.menlhk.go.id/arcgis/rest/services/KLHK/PIAPS_V/MapServer/0',
-                'http://geoportal.menlhk.go.id/arcgis/rest/services/KLHK/RekalkulasiBatasKawasan/MapServer/0',
-                'http://geoportal.menlhk.go.id/arcgis/rest/services/KLHK/PIAPS_Rev4/MapServer/0',
-                'http://geoportal.menlhk.go.id/arcgis/rest/services/KLHK/WilayahPengukuranKinerja_REDD/MapServer/0',
+                {'uri': 'http://geoportal.menlhk.go.id/arcgis/rest/services/KLHK/PIPPIB_2019/MapServer/0',
+                 'result_record_count': 10,
+                 'max_result_record_count': 100,
+                 'max_tries': 1,
+                 'target_time': 50000,
+                 'timeout': 10
+                 },
+                {'uri': 'http://geoportal.menlhk.go.id/arcgis/rest/services/KLHK/PIPPIB_2020_Periode1/MapServer/0',  # url of arc service folder
+                 'result_record_count': 10,
+                 'max_result_record_count': 100,
+                 'max_tries': 1,
+                 'target_time': 50000,
+                 'timeout': 10
+                 },
+                {'uri': 'http://geoportal.menlhk.go.id/arcgis/rest/services/KLHK/Pinjam_Pakai_Kawasan_Hutan/MapServer/0',
+                 'result_record_count': 10,
+                 'max_result_record_count': 100,
+                 'max_tries': 1,
+                 'target_time': 50000,
+                 'timeout': 10
+                 },
+                {'uri': 'http://geoportal.menlhk.go.id/arcgis/rest/services/KLHK/PIAPS_V/MapServer/0',
+                 'result_record_count': 10,
+                 'max_result_record_count': 100,
+                 'max_tries': 1,
+                 'target_time': 50000,
+                 'timeout': 10
+                 },
+                {'uri': 'http://geoportal.menlhk.go.id/arcgis/rest/services/KLHK/RekalkulasiBatasKawasan/MapServer/0',
+                 'result_record_count': 10,
+                 'max_result_record_count': 100,
+                 'max_tries': 1,
+                 'target_time': 50000,
+                 'timeout': 10
+                 },
+                {'uri': 'http://geoportal.menlhk.go.id/arcgis/rest/services/KLHK/PIAPS_Rev4/MapServer/0',
+                 'result_record_count': 10,
+                 'max_result_record_count': 100,
+                 'max_tries': 1,
+                 'target_time': 50000,
+                 'timeout': 10
+                 },
+                {'uri': 'http://geoportal.menlhk.go.id/arcgis/rest/services/KLHK/WilayahPengukuranKinerja_REDD/MapServer/0',
+                 'result_record_count': 10,
+                 'max_result_record_count': 100,
+                 'max_tries': 1,
+                 'target_time': 50000,
+                 'timeout': 10
+                 },
 
-                'http://geoportal.menlhk.go.id/arcgis/rest/services/KLHK/Ekoregion_Darat_Laut/MapServer/0',
-                'http://geoportal.menlhk.go.id/arcgis/rest/services/KLHK/Ekoregion_Darat/MapServer/0',
-                'http://geoportal.menlhk.go.id/arcgis/rest/services/KLHK/Fungsi_Ekologi_Gambut/MapServer/0',
+                {'uri': 'http://geoportal.menlhk.go.id/arcgis/rest/services/KLHK/Ekoregion_Darat_Laut/MapServer/0',
+                 'result_record_count': 10,
+                 'max_result_record_count': 100,
+                 'max_tries': 1,
+                 'target_time': 50000,
+                 'timeout': 10
+                 },
+                {'uri': 'http://geoportal.menlhk.go.id/arcgis/rest/services/KLHK/Ekoregion_Darat/MapServer/0',
+                 'result_record_count': 10,
+                 'max_result_record_count': 100,
+                 'max_tries': 1,
+                 'target_time': 50000,
+                 'timeout': 10
+                 },
+                {'uri': 'http://geoportal.menlhk.go.id/arcgis/rest/services/KLHK/Fungsi_Ekologi_Gambut/MapServer/0',
+                 'result_record_count': 10,
+                 'max_result_record_count': 100,
+                 'max_tries': 1,
+                 'target_time': 50000,
+                 'timeout': 10
+                 },
+                {'uri': 'http://geoportal.menlhk.go.id/arcgis/rest/services/KLHK/IUPHHK_HTI/MapServer/0',
+                 'result_record_count': 10,
+                 'max_result_record_count': 100,
+                 'max_tries': 1,
+                 'target_time': 50000,
+                 'timeout': 10
+                 },
+                {'uri':  'http://geoportal.menlhk.go.id/arcgis/rest/services/KLHK/IUPHHK_RE/MapServer/0',
+                 'result_record_count': 10,
+                 'max_result_record_count': 100,
+                 'max_tries': 1,
+                 'target_time': 50000,
+                 'timeout': 10
+                 },
+                {'uri':  'http://geoportal.menlhk.go.id/arcgis/rest/services/KLHK/IUPHHK_HA/MapServer/0',
+                 'result_record_count': 10,
+                 'max_result_record_count': 100,
+                 'max_tries': 1,
+                 'target_time': 50000,
+                 'timeout': 10
+                 },
 
-                'http://geoportal.menlhk.go.id/arcgis/rest/services/KLHK/IUPHHK_HTI/MapServer/0',
-                'http://geoportal.menlhk.go.id/arcgis/rest/services/KLHK/IUPHHK_RE/MapServer/0',
-                'http://geoportal.menlhk.go.id/arcgis/rest/services/KLHK/IUPHHK_HA/MapServer/0',
+                {'uri': 'http://geoportal.menlhk.go.id/arcgis/rest/services/KLHK/KHG/MapServer/0',
+                 'result_record_count': 10,
+                 'max_result_record_count': 100,
+                 'max_tries': 1,
+                 'target_time': 50000,
+                 'timeout': 10
+                 },
+                {'uri': 'http://geoportal.menlhk.go.id/arcgis/rest/services/KLHK/KPH/MapServer/0',
+                 'result_record_count': 10,
+                 'max_result_record_count': 100,
+                 'max_tries': 1,
+                 'target_time': 50000,
+                 'timeout': 10
+                 },
+                {'uri': 'http://geoportal.menlhk.go.id/arcgis/rest/services/KLHK/KPH/MapServer/1',
+                 'result_record_count': 10,
+                 'max_result_record_count': 100,
+                 'max_tries': 1,
+                 'target_time': 50000,
+                 'timeout': 10
+                 },
 
-                'http://geoportal.menlhk.go.id/arcgis/rest/services/KLHK/KHG/MapServer/0',
-                'http://geoportal.menlhk.go.id/arcgis/rest/services/KLHK/KPH/MapServer/0',
-                'http://geoportal.menlhk.go.id/arcgis/rest/services/KLHK/KPH/MapServer/1',
-                
-                'http://geoportal.menlhk.go.id/arcgis/rest/services/KLHK/Kawasan_Hutan/MapServer/0',
-                'http://geoportal.menlhk.go.id/arcgis/rest/services/KLHK/Hutan_Adat/MapServer/0',
-                'http://geoportal.menlhk.go.id/arcgis/rest/services/KLHK/Hutan_Desa/MapServer/0',
-                'http://geoportal.menlhk.go.id/arcgis/rest/services/KLHK/Hutan_Kemasyarakatan/MapServer/0',
-                'http://geoportal.menlhk.go.id/arcgis/rest/services/KLHK/Hutan_Mangrove/MapServer/1',
-                'http://geoportal.menlhk.go.id/arcgis/rest/services/KLHK/Hutan_Tanaman_Rakyat/MapServer/0',
+                {'uri': 'http://geoportal.menlhk.go.id/arcgis/rest/services/KLHK/Kawasan_Hutan/MapServer/0',
+                 'result_record_count': 10,
+                 'max_result_record_count': 100,
+                 'max_tries': 1,
+                 'target_time': 50000,
+                 'timeout': 10
+                 },
+                {'uri': 'http://geoportal.menlhk.go.id/arcgis/rest/services/KLHK/Hutan_Adat/MapServer/0',
+                 'result_record_count': 10,
+                 'max_result_record_count': 100,
+                 'max_tries': 1,
+                 'target_time': 50000,
+                 'timeout': 10
+                 },
+                {'uri': 'http://geoportal.menlhk.go.id/arcgis/rest/services/KLHK/Hutan_Desa/MapServer/0',
+                 'result_record_count': 10,
+                 'max_result_record_count': 100,
+                 'max_tries': 1,
+                 'target_time': 50000,
+                 'timeout': 10
+                 },
+                {'uri': 'http://geoportal.menlhk.go.id/arcgis/rest/services/KLHK/Hutan_Kemasyarakatan/MapServer/0',
+                 'result_record_count': 10,
+                 'max_result_record_count': 100,
+                 'max_tries': 1,
+                 'target_time': 50000,
+                 'timeout': 10
+                 },
+                {'uri': 'http://geoportal.menlhk.go.id/arcgis/rest/services/KLHK/Hutan_Mangrove/MapServer/1',
+                 'result_record_count': 10,
+                 'max_result_record_count': 100,
+                 'max_tries': 1,
+                 'target_time': 50000,
+                 'timeout': 10
+                 },
+                {'uri': 'http://geoportal.menlhk.go.id/arcgis/rest/services/KLHK/Hutan_Tanaman_Rakyat/MapServer/0',
+                 'result_record_count': 10,
+                 'max_result_record_count': 100,
+                 'max_tries': 1,
+                 'target_time': 50000,
+                 'timeout': 10
+                 },
                 ]
 
         # uris = ['http://geoportal.menlhk.go.id/arcgis/rest/services/KLHK/Lahan_Kritis_2018/MapServer/0']
@@ -107,6 +276,7 @@ if __name__ == "__main__":
 
         # database configuration for mssql
         # change server to match your server and database
+        # database needs to exist
         db_conn = {'server': '.\\npongo16',
                    'database': 'Indonesia_menlhk'}
 
@@ -115,9 +285,9 @@ if __name__ == "__main__":
         # db_client = PostgreSQLClient(db_conn)  # create connection to ms sql server database
 
         # create table and load records into table
-        # create_db_objects(schema, db_client)
+        # create_db_objects(schema, db_client) #  use this method to create stats and error logging tables.
         # for uri in uris:
-        #   load_data_for_arc_layer(uri, sql_server_conn, schema, create_db_objects=True)
+        #    load_data_for_arc_layer(uri, db_client, schema, create_db_objects=True,  load_data=False)
 
         # only load records into table
         for uri in uris:

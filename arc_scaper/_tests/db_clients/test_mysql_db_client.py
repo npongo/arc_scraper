@@ -72,7 +72,7 @@ def test_quote_name(sql_client, name, expected):
     assert result == expected
 
 
-@pytest.mark.parametrize("name, expected", [('1?.*', '`_1_`'), ('na[]me', '`name`'), ('[na&&me]', '`na_me`')])
+@pytest.mark.parametrize("name, expected", [('1?.*', '`_1_`'), ('na[]me', '`name`'), ('[na&&me]', '`na__me`')])
 def test_sanitize_and_quote_name(sql_client, name, expected):
     result = sql_client.sanitize_and_quote_name(name)
     assert result == expected

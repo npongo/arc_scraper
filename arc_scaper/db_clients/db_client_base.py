@@ -58,14 +58,14 @@ class DBClient(ABC):
         return sanitize_and_quote_name(name, self.quote_characters,
                                        max_length=self.sql_generator_options['max_identifier_length'],
                                        underscore_leading_number=True,
-                                       allow_double_symbols = self.sql_generator_options['allow_double_symbols'],
+                                       allow_double_symbols=self.sql_generator_options['allow_double_symbols'],
                                        force_lower_case=self.sql_generator_options['use_lower_case_identifier'],
                                        replacement_dict=self.sql_generator_options['sanitize_replacements'])
 
     def sanitize_name(self, name):
         return sanitize_name(name, max_length=self.sql_generator_options['max_identifier_length'],
                              underscore_leading_number=True,
-                             allow_double_symbols = self.sql_generator_options['allow_double_symbols'],
+                             allow_double_symbols=self.sql_generator_options['allow_double_symbols'],
                              force_lower_case=self.sql_generator_options['use_lower_case_identifier'],
                              replacement_dict=self.sql_generator_options['sanitize_replacements'])
 

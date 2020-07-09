@@ -6,6 +6,7 @@ class ArcLayer(ArcSet):
     def __init__(self, uri, folder, db_client):
         super().__init__(uri, folder, db_client)
         self.load_meta_data()
+
     @property
     def has_Z(self):
         return bool(self.raw_json.get('hasZ', False))

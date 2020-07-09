@@ -34,13 +34,13 @@ def test_arc_layer_init(monkeypatch, arc_layer):
 
 
 
-@pytest.mark.parametrize("url, folder, db_type, expected", [('http://geoportal.menlhk.go.id/arcgis/rest/services/SINAV/Usulan_IPHPS/MapServer/0', 'SINAV', 'mysql', '[sinav].[dbklhk_pkps_pskl_usulan_iphps]'),
-                                         ('http://geoportal.menlhk.go.id/arcgis/rest/services/KLHK_EN/IUPHHK_RE/MapServer/0', 'KLHK_EN', 'mysql', '[KLHK_EN].[IUPHHK_RE]'),
-                                         ('http://geoportal.menlhk.go.id/arcgis/rest/services/Publik/Def_2017_2018_Publik/MapServer/0', 'Publik', 'mysql', '[Publik].[Deforestasi_2017_2018]'),
-                                         ('http://geoportal.menlhk.go.id/arcgis/rest/services/Publik/IUPHHK_HT_Publik/MapServer/0', 'Publik', 'mysql', '[Publik].[IUPHHK_Hutan_Tanaman]')])
+@pytest.mark.parametrize("url, folder, db_type, expected", [('http://geoportal.menlhk.go.id/arcgis/rest/services/SINAV/Usulan_IPHPS/MapServer/0', 'SINAV', 'mssql', '[sinav].[usulan_iphps_dbklhk_pkps_pskl_usulan_iphps]'),
+                                         ('http://geoportal.menlhk.go.id/arcgis/rest/services/KLHK_EN/IUPHHK_RE/MapServer/0', 'KLHK_EN', 'mssql', '[KLHK_EN].[IUPHHK_RE_IUPHHK_RE]'),
+                                         ('http://geoportal.menlhk.go.id/arcgis/rest/services/Publik/Def_2017_2018_Publik/MapServer/0', 'Publik', 'mssql', '[Publik].[def_2017_2018_publik_deforestasi_2017_2018]'),
+                                         ('http://geoportal.menlhk.go.id/arcgis/rest/services/Publik/IUPHHK_HT_Publik/MapServer/0', 'Publik', 'mssql', '[Publik].[iuphhk_ht_publik_iuphhk_hutan_tanaman]')])
 def test_arc_layer_sql_table_name(monkeypatch, arc_layer, db_type, expected):
     monkeypatch.setattr(requests, 'get', mock_get_return)
-    sql_name = arc_layer.sql_table_name
+    sql_name = arc_layer.sql_full_table_name
     assert sql_name.lower() == expected.lower()
 
 
