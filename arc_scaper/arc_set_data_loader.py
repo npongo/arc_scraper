@@ -221,7 +221,8 @@ class ArcSetDataLoader:
 
     def load_data(self):
         try:
-
+            # TODO: surface out_SR and geo precision as parameter
+            # TODO: add support for true curves
             paged = self.__arc_set.advanced_query_capabilities.get("supportsPagination", False)
             print(f"start loading {self.arc_set.name}")
             if self.load_stats():
@@ -231,7 +232,9 @@ class ArcSetDataLoader:
                 query_builder.where = "1=1"
                 query_builder.out_fields = self.arc_set.fields
                 query_builder.format = ArcFormat.JSON.value
+                query_builder.return_true_curves = False
                 query_builder.out_SR = 4326
+                query_builder.geometry_precision = 7
                 self.__OIDs_to_load = list(self.__OIDs - self.__loaded_OIDs)
 
                 if self.__loaded_record_count == self.__record_count:

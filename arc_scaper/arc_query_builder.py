@@ -6,7 +6,7 @@ class ArcQueryBuilder(str):
     """
     this class is a fluent representation of the arc map server query syntax
     """
-
+    # TODO: add type checking on bools
     def __init__(self, arc_set):
         super().__init__()
         self.__arc_set = arc_set
@@ -573,6 +573,9 @@ class ArcQueryBuilder(str):
         try:
             query = "{0}/query?".format((self.__arc_set).uri)
 
+            if len(self.__object_ids) == 1:
+                query = "{0}/{1}/query?".format((self.__arc_set).uri, self.__object_ids[0])
+
             if self.__format is not None:
                 query += "f={0}".format(self.__format)
             else:
@@ -596,10 +599,10 @@ class ArcQueryBuilder(str):
             if len(self.__relation_param) > 0:
                 query += "&relationParam={0}".format(quote(self.__relation_param))
 
-            if self.__where is not None:
+            if self.__where is not None and len(self.__object_ids) != 1:
                 query += "&where={0}".format(quote(self.__where))
 
-            if len(self.__object_ids) > 0:
+            if len(self.__object_ids) > 1:
                 query += "&objectIds={0}".format(quote(",".join([str(i) for i in self.__object_ids])))
 
             # TODO: handling of arc time formating

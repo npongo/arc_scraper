@@ -72,12 +72,12 @@ def esri_json_to_multi_point(json):
 
 
 def esri_json_to_linestring(json):
-    if json == "" or len(json['rings']) == 0:
+    if json == "" or len(json['paths']) == 0:
         return "LINESTRING EMPTY"
-    if len(json) > 1:
-        wtk_part = "MULTILINESTRING(({0}))".format(format_linestrings(json))
+    if len(json.get('paths', [])) > 1:
+        wtk_part = "MULTILINESTRING({0})".format(format_linestrings([p for p in json['paths']]))
     else:
-        wtk_part = "LINESTRING({0})".format(format_linestrings(json))
+        wtk_part = "LINESTRING{0}".format(format_linestrings([p for p in json['paths']]))
     return wtk_part
 
 

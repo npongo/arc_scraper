@@ -3,6 +3,8 @@ from itertools import product
 
 class ArcSet(ArcBase):
 
+    # TODO: add support for SRId and constraints in database
+    # TODO: add support for custom names
     def __init__(self, uri, folder, db_client):
         super().__init__(uri, db_client)
         assert isinstance(folder, str)
