@@ -6,6 +6,7 @@ from helpers import json_to_wkt, exception_logging, esri_geometry_to_empty_wtk
 from time import time
 from json import dumps
 from datetime import datetime
+from tqdm import tqdm
 # from shapely.validation import make_valid
 # from shapely.geometry import multipolygon, point, multilinestring
 
@@ -44,6 +45,7 @@ class ArcSetDataLoader:
         self.__http_success_record_no = {}
         self.__error_persist = arc_set.db_error_logger
         self.__get = Session().get
+        self.__pbar = None
     # __sql_generator_templates = {
     #     "insert_stats": "INSERT INTO TableStats(TableName, MinOID, MaxOID, RecordCount, LoadedRecordCount) \
     #     VALUES('{table_name}',{min_OID},{max_OID},{record_count},{loaded_record_count}}"
@@ -189,6 +191,7 @@ class ArcSetDataLoader:
         if response.ok and "error" not in response.json():
             json = response.json()
             self.__record_count = int(json['Count'])
+            self.__pbar = tqdm(total=self.__record_count)
             return True
         else:
             return False
@@ -202,6 +205,7 @@ class ArcSetDataLoader:
             self.__max_OID = int(att['MaxOID'])
             self.__min_OID = int(att['MinOID'])
             self.__record_count = int(att['Count'])
+            self.__pbar = tqdm(total=self.__record_count)
             return True
         else:
             return False
@@ -214,6 +218,7 @@ class ArcSetDataLoader:
             self.__min_OID = min(self.__OIDs)
             self.__max_OID = max(self.__OIDs)
             self.__record_count = len(self.__OIDs)
+            self.__pbar = tqdm(total=self.__record_count)
             self.__object_id_field_name = json['objectIdFieldName']
             return True
         else:
@@ -224,9 +229,9 @@ class ArcSetDataLoader:
             # TODO: surface out_SR and geo precision as parameter
             # TODO: add support for true curves
             paged = self.__arc_set.advanced_query_capabilities.get("supportsPagination", False)
-            print(f"start loading {self.arc_set.name}")
+            print(f"start loading {self.arc_set.name}({self.arc_set.sql_full_table_name})")
             if self.load_stats():
-                print(f"loaded stats for {self.arc_set.name}")
+                #print(f"loaded stats for {self.arc_set.name}")
                 self.__tries = 0
                 query_builder = ArcQueryBuilder(self.arc_set)
                 query_builder.where = "1=1"
@@ -236,9 +241,9 @@ class ArcSetDataLoader:
                 query_builder.out_SR = 4326
                 query_builder.geometry_precision = 7
                 self.__OIDs_to_load = list(self.__OIDs - self.__loaded_OIDs)
-
+                self.__pbar.update(self.__loaded_record_count)
                 if self.__loaded_record_count == self.__record_count:
-                    print(f"Finished loading {self.__loaded_record_count} of {self.__record_count} for table {self.arc_set.name}.")
+                    # print(f"Finished loading {self.__loaded_record_count} of {self.__record_count} for table {self.arc_set.name}.")
                     return
 
                 if len(self.__OIDs_to_load):  # load by record id
@@ -278,19 +283,20 @@ class ArcSetDataLoader:
                 else:
                     self.errors.append(Exception("Can not load metadata for {}".format(self.arc_set.name)))
 
-            print(f"Finished loading {self.__loaded_record_count} of {self.__record_count} for table {self.arc_set.name}.")
+            print(f"Finished loading {self.__loaded_record_count} of {self.__record_count} for table {self.arc_set.name} ({self.arc_set.sql_full_table_name}).")
 
         except Exception as e:
             self.__add_error(e)
             print(f"finished loading {self.arc_set.name} with error!")
         finally:
             self.save_stats_to_db()
+            self.__pbar.close()
 
     def __load_batch(self, query):
         query_result = self.try_load_records(query)
         if query_result:
             self.__tries = 0
-            print(f"Successfully tried to downloaded {len(query_result.get('features',[]))}  records for  {self.arc_set.name} !")
+            # print(f"Successfully tried to downloaded {len(query_result.get('features',[]))}  records for  {self.arc_set.name} !")
             rows_inserted = self.parse_and_save_json_data(query_result)
             if rows_inserted:
                 return rows_inserted
@@ -333,7 +339,7 @@ class ArcSetDataLoader:
         except Exception as e:
             try:
                 # self.__stop_timer()
-                print(f"Try downloaded {self.__result_record_count} records for  {self.arc_set.name}  for the {self.__tries} time!")
+                # print(f"Try downloaded {self.__result_record_count} records for  {self.arc_set.name}  for the {self.__tries} time!")
                 self.__add_error(Exception("Error on try_load_records for query {0}, message:{1}"
                                            .format(query_builder, e)))
                 if self.__result_record_count > 1:
@@ -397,7 +403,8 @@ class ArcSetDataLoader:
 
                 k = self.__db_client.run_bulk_insert(insert_template, inserts, formatter, batch=1000)
                 self.__loaded_record_count += k
-                print(f"loaded {self.__loaded_record_count} of {self.__record_count} into {self.arc_set.name}")
+                self.__pbar.update(k)
+                # print(f"loaded {self.__loaded_record_count} of {self.__record_count} into {self.arc_set.name}")
                 return k
             else:
                 raise Exception("empty json")

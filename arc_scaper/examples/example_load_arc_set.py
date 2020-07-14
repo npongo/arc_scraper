@@ -259,13 +259,13 @@ if __name__ == "__main__":
                #   'target_time': 50000,
                #   'timeout': 10
                #   },
-                {'uri': 'http://geoportal.menlhk.go.id/arcgis/rest/services/KLHK/PIAPS_Rev4/MapServer/0',
-                 'result_record_count': 10,
-                 'max_result_record_count': 100,
-                 'max_tries': 0,
-                 'target_time': 50000,
-                 'timeout': 300
-                 },
+               #  {'uri': 'http://geoportal.menlhk.go.id/arcgis/rest/services/KLHK/PIAPS_Rev4/MapServer/0',
+               #   'result_record_count': 10,
+               #   'max_result_record_count': 100,
+               #   'max_tries': 0,
+               #   'target_time': 50000,
+               #   'timeout': 300
+               #   },
                #  {'uri': 'http://geoportal.menlhk.go.id/arcgis/rest/services/KLHK/WilayahPengukuranKinerja_REDD/MapServer/0',
                #   'result_record_count': 10,
                #   'max_result_record_count': 100,
@@ -373,7 +373,7 @@ if __name__ == "__main__":
                #   'max_tries': 0,
                #   'target_time': 50000,
                #   'timeout': 10
-               #   },
+               #  },
                 {'uri': 'http://geoportal.menlhk.go.id/arcgis/rest/services/KLHK/Hutan_Tanaman_Rakyat/MapServer/0',
                  'result_record_count': 10,
                  'max_result_record_count': 100,
