@@ -377,7 +377,7 @@ class ArcSetDataLoader:
                 def non_geom(json):
                     return esri_geometry_to_empty_wtk.get(geometry_type, 'POINT EMPTY')
 
-                for f in json['features']:
+                for f in json.get('features', []) + json.get('feature', []):
 
                     values = ",".join(["'{}' ".format(str(v).replace("'", "''")) if str(v).strip() != '' and v is not None
                                        else "NULL " for k, v in f['attributes'].items()])

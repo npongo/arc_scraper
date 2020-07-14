@@ -6,6 +6,7 @@ from arc_set_data_loader import ArcSetDataLoader
 from helpers import exception_logging
 from _tests.secrets import db_conns
 
+
 def load_data_for_arc_service(uri, db_client, schema, create_db_objects=False):
     try:
 
