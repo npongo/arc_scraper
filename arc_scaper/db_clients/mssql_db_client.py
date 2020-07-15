@@ -29,7 +29,7 @@ class SqlServerClient(DBClient):
             "select_object_ids": "SELECT {object_id_field_name} FROM {table_name}",
             "data_insert": "INSERT INTO {table_name}({columns}) VALUES {values}",
             "data_row_insert": "({values})",
-            "spatial_data_insert": "({values}, GEOMETRY::STGeomFromText('{wkt}',4326).MakeValid())",
+            "spatial_data_insert": "(GEOMETRY::STGeomFromText('{wkt}',4326).MakeValid(),{values})",
             "null_spatial_data_insert": "({values},NULL)",
             "create_database": "USE master\nGO\n\nIF DB_ID('{database}') IS NULL CREATE DATABASE {database}\nGO\n\nUSE [{database}]",
             "drop_database": "IF DB_ID('{database}') IS NOT NULL DROP DATABASE {database}",

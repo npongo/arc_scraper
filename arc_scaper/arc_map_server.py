@@ -7,7 +7,7 @@ from itertools import product
 
 class ArcMapServer(ArcBase):
 
-    def __init__(self, uri, folder, arc_service, db_client):
+    def __init__(self, uri, folder, arc_service, db_client, SR_id=4326):
         """
 
         :param uri:
@@ -15,7 +15,7 @@ class ArcMapServer(ArcBase):
         :param arc_service:
         :param db_client:
         """
-        super().__init__(uri, db_client)
+        super().__init__(uri, db_client, SR_id=SR_id)
         # if not isinstance(arc_service, ArcService):
         #     raise Exception("arc service must be of type ArcService")
         self._arc_service = arc_service
@@ -28,6 +28,7 @@ class ArcMapServer(ArcBase):
     #     "foreign_key_constraint": "ALTER TABLE [{schema}].[{table_name}]\nADD CONSTRAINT [fk_{name}] \
     #     FOREIGN KEY({column}) REFERENCES [{ref_schema}].[{re_table_name}] ([{ref_column}])\nGO"
     # }
+
 
     @property
     def errors(self):
@@ -162,11 +163,13 @@ class ArcMapServer(ArcBase):
             self.load_json()
             self._layers = [ArcLayer("{0}/{1}".format(self.uri, l['id']),
                                      self._folder,
-                                     self.db_client) for l in self.json_layers]
+                                     self.db_client,
+                                     SR_id=self._SR_id) for l in self.json_layers]
 
             self._tables = [ArcTable("{0}/{1}".format(self.uri, l['id']),
                                      self._folder,
-                                     self.db_client) for l in self.json_tables]
+                                     self.db_client,
+                                     SR_id=self._SR_id) for l in self.json_tables]
 
             # convert to async
             # for l in self.layers:

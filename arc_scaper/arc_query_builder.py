@@ -32,8 +32,8 @@ class ArcQueryBuilder(str):
         self.__units = None
         self.__out_fields = []
         self.__return_geometry = True
-        self.__max_allowable_offset = None
-        self.__geometry_precision = None
+        self.__max_allowable_offset = 0
+        self.__geometry_precision = 12
         self.__out_SR = 4326
         self.__return_ids_only = False
         self.__return_count_only = False

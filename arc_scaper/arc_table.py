@@ -3,8 +3,8 @@ from arc_set import ArcSet
 
 class ArcTable(ArcSet):
 
-    def __init__(self, uri, folder, db_client):
-        super().__init__(uri, folder, db_client)
+    def __init__(self, uri, folder, db_client, SR_id=4326):
+        super().__init__(uri, folder, db_client, SR_id=SR_id)
         self.load_meta_data()
 
     def load_meta_data(self):

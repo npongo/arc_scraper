@@ -8,13 +8,13 @@ from arc_set_data_loader import ArcSetDataLoader
 
 class ArcRestModel(ArcBase):
 
-    def __init__(self, uri, database, db_client):
+    def __init__(self, uri, database, db_client, SR_id=4326):
         """
 
         :param uri:
         :param db_client:
         """
-        super().__init__(uri, db_client)
+        super().__init__(uri, db_client, SR_id=SR_id)
         self._database = database
         self._arc_services = list()
         self.load_meta_data()
@@ -22,6 +22,10 @@ class ArcRestModel(ArcBase):
 
     # _sql_generator_templates = {'create_database': "IF DB_ID('{database}') IS NULL CREATE DATABASE \
     # [{database}]\nGO\nUSE [{database}]\nGO\n{sql_stm}"}
+
+    @property
+    def SR_id(self):
+        return self._SR_id
 
     @property
     def arc_services(self):
@@ -157,7 +161,7 @@ class ArcRestModel(ArcBase):
 
             for f in self.folders:
                 uri = "{0}/services/{1}".format(self.uri, f)
-                arc_s = arc_service.ArcService(uri, f, self, self.db_client)
+                arc_s = arc_service.ArcService(uri, f, self, self.db_client, SR_id=self._SR_id)
                 # arc_s.load_meta_data()
                 self.add_arc_service(arc_s)
                 if not arc_s.loaded:

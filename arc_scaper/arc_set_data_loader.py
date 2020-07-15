@@ -18,8 +18,11 @@ class ArcSetDataLoader:
                  max_result_record_count=100,
                  max_tries=1,
                  target_time=30000,  # milliseconds
-                 timeout=30  # seconds
-                 ):
+                 timeout=30,  # seconds
+                 allowable_offset = 0,
+                 max_allowable_offset=1025,
+                 geometry_precision=7,
+                 extra_query_params={}):
         self.__arc_set = arc_set
         self.__db_client = arc_set.db_client
         self.__result_record_count = result_record_count
@@ -46,6 +49,10 @@ class ArcSetDataLoader:
         self.__error_persist = arc_set.db_error_logger
         self.__get = Session().get
         self.__pbar = None
+        self.__extra_query_params = extra_query_params
+        self.__allowable_offset = allowable_offset
+        self.__max_allowable_offset = max_allowable_offset
+        self.__geometry_precision = geometry_precision
     # __sql_generator_templates = {
     #     "insert_stats": "INSERT INTO TableStats(TableName, MinOID, MaxOID, RecordCount, LoadedRecordCount) \
     #     VALUES('{table_name}',{min_OID},{max_OID},{record_count},{loaded_record_count}}"
@@ -239,7 +246,10 @@ class ArcSetDataLoader:
                 query_builder.format = ArcFormat.JSON.value
                 query_builder.return_true_curves = False
                 query_builder.out_SR = 4326
-                query_builder.geometry_precision = 7
+                query_builder.geometry_precision = self.__geometry_precision
+                for k, v in self.__extra_query_params:
+                    setattr(query_builder, k, v)
+
                 self.__OIDs_to_load = list(self.__OIDs - self.__loaded_OIDs)
                 self.__pbar.update(self.__loaded_record_count)
                 if self.__loaded_record_count == self.__record_count:
@@ -283,7 +293,6 @@ class ArcSetDataLoader:
                 else:
                     self.errors.append(Exception("Can not load metadata for {}".format(self.arc_set.name)))
 
-            print(f"Finished loading {self.__loaded_record_count} of {self.__record_count} for table {self.arc_set.name} ({self.arc_set.sql_full_table_name}).")
 
         except Exception as e:
             self.__add_error(e)
@@ -291,6 +300,9 @@ class ArcSetDataLoader:
         finally:
             self.save_stats_to_db()
             self.__pbar.close()
+            print(f"Finished loading {self.__loaded_record_count} of {self.__record_count} with {len(self.errors)} errors for table {self.arc_set.name} ({self.arc_set.sql_full_table_name}).\n ")
+            for e in self.errors:
+                print(e)
 
     def __load_batch(self, query):
         query_result = self.try_load_records(query)
@@ -329,6 +341,9 @@ class ArcSetDataLoader:
                                                  + (opt_record_no*(1/self.__target_time))) /
                                                  (sum([v for k, v in self.__http_success_record_no.items()]) + 1/millis_per_record))))
                 self.__target_time = min(self.__target_time * 1.1, 30000)
+
+                query_builder.max_allowable_offset = self.__allowable_offset
+
                 return response.json()
             elif "error" in response.json():
                 elapsed = time() - self.__t0
@@ -349,8 +364,12 @@ class ArcSetDataLoader:
 
                     self.__tries += 1
                     # self.try_load_records(query_builder)
+                elif query_builder.max_allowable_offset <= self.__max_allowable_offset:
+                    new_offset = min(max(query_builder.max_allowable_offset**2, 2), self.__max_allowable_offset)
+                    query_builder.max_allowable_offset = new_offset
                 else:
                     self.__tries = 0
+                    query_builder.max_allowable_offset = self.__allowable_offset
                     self.__result_offset += self.__result_record_count
                 return False
             except Exception as e:
@@ -362,13 +381,18 @@ class ArcSetDataLoader:
             if json:
                 geom_col_name = [self.__db_client.sanitize_and_quote_name(f['name']) for f in self.arc_set.fields
                                  if f['type'] == "esriFieldTypeGeometry"]
-                geometry_type = json.get('geometryType', '')
-                col_names = [self.__db_client.sanitize_and_quote_name(n['name']) for n in json.get('fields', [])] + \
-                             geom_col_name
+                geometry_type = self.arc_set.geometry_type
+                col_names = geom_col_name
+                if 'fields' in json:
+                    col_names += [self.__db_client.sanitize_and_quote_name(n['name']) for n in (json.get('fields', {}))]
+                else:
+                    col_names += [self.__db_client.sanitize_and_quote_name(k) for k, v
+                                  in json.get('feature', {'attributes': {}}).get('attributes', {}).items()]
+
                 inserts = list()
                 data_row_insert = self.__db_client.sql_generator_templates["data_row_insert"]
                 spatial_data_insert = self.__db_client.sql_generator_templates["spatial_data_insert"]
-                null_spatial_data_insert = self.__db_client.sql_generator_templates["null_spatial_data_insert"]
+                # null_spatial_data_insert = self.__db_client.sql_generator_templates["null_spatial_data_insert"]
 
                 def formatter(row):
                     return f"{row}"
@@ -383,7 +407,7 @@ class ArcSetDataLoader:
                 def non_geom(json):
                     return esri_geometry_to_empty_wtk.get(geometry_type, 'POINT EMPTY')
 
-                for f in json.get('features', []) + json.get('feature', []):
+                for f in (json.get('features', []) or [json.get('feature', None)]):
 
                     values = ",".join(["'{}' ".format(str(v).replace("'", "''")) if str(v).strip() != '' and v is not None
                                        else "NULL " for k, v in f['attributes'].items()])

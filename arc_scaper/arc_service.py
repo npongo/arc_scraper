@@ -6,7 +6,7 @@ from warnings import warn
 
 class ArcService(ArcBase):
 
-    def __init__(self, uri, name, rest_model, db_client):
+    def __init__(self, uri, name, rest_model, db_client, SR_id=4326):
         """
 
         :param uri:
@@ -14,7 +14,7 @@ class ArcService(ArcBase):
         :param rest_model:
         :param db_client:
         """
-        super().__init__(uri, db_client)
+        super().__init__(uri, db_client, SR_id=SR_id)
         # if not isinstance(rest_model, ArcRestModel):
         #     raise Exception("rest model must be of type ArcRestModel")
         self._arc_map_servers = list()
@@ -27,6 +27,10 @@ class ArcService(ArcBase):
     #      VALUES('{table_name}',{min_OID},{max_OID},{record_count},{loaded_record_count}}",
     #     "create_schema": "IF SCHEMA_ID('{schema}') IS NULL EXEC('CREATE SCHEMA[{schema}]')\nGO"
     # }
+
+    @property
+    def SR_id(self):
+        return self._SR_id
 
     @property
     def arc_rest_model(self):
@@ -126,7 +130,7 @@ class ArcService(ArcBase):
             for s in [s for s in self.services if s['type'] == 'MapServer']:
                 name = self.name
                 uri = f"{self.uri}/{s['name'].split('/')[-1]}/MapServer"
-                ams = ArcMapServer(uri, name, self, self.db_client)
+                ams = ArcMapServer(uri, name, self, self.db_client, SR_id=self._SR_id)
                 self._arc_map_servers.append(ams)
                 # ams.load_meta_data()
 
@@ -134,7 +138,10 @@ class ArcService(ArcBase):
                 uri_list = list(self.uri.partition("?"))
                 uri_list.insert(1, f"/{f}")
                 uri = "".join(uri_list)
-                arc_service = ArcService(uri, f"{self.name}_{f}", self._arc_rest_model, self.db_client)
+                arc_service = ArcService(uri, f"{self.name}_{f}",
+                                         self._arc_rest_model,
+                                         self.db_client,
+                                         SR_id=self._SR_id)
                 arc_service.load_meta_data()
                 # self._arc_rest_model.add_arc_service(arc_service)
 

@@ -9,14 +9,19 @@ from helpers import exception_logging
 # TODO add out_srid
 class ArcBase(ABC):
 
-    def __init__(self, uri, db_client, error_logger=None):
+    def __init__(self, uri, db_client, error_logger=None, SR_id=4326):
         self._uri = uri  # if uri.endswith("/") else f"{uri}/"
         self._db_client = db_client
+        self._SR_id = SR_id
         self._loaded = False
         self._timeout = 50000
         self._raw_json = dict()
         self._errors = list()
         self._error_logger = error_logger if error_logger is not None else print
+
+    @property
+    def SR_id(self):
+        return self._SR_id
 
     @property
     def loaded(self):

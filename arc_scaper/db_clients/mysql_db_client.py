@@ -29,7 +29,7 @@ class MySQLClient(DBClient):
             "select_object_ids": "SELECT {object_id_field_name} FROM {table_name}",
             "data_insert": "INSERT INTO {table_name}({columns}) VALUES {values}",
             "data_row_insert": "({values})",
-            "spatial_data_insert": "({values}, ST_GeomFromText('{wkt}',4326, 'axis-order=long-lat'))",
+            "spatial_data_insert": "(ST_GeomFromText('{wkt}',4326, 'axis-order=long-lat'), {values})",
             "null_spatial_data_insert": "({values},NULL)",
             "create_database": "CREATE DATABASE IF NOT EXISTS {database};\n\nUSE {database}",
             "drop_database": "DROP DATABASE IF EXISTS {database}",

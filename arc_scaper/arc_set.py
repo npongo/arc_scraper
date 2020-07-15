@@ -5,8 +5,18 @@ class ArcSet(ArcBase):
 
     # TODO: add support for SRId and constraints in database
     # TODO: add support for custom names
-    def __init__(self, uri, folder, db_client):
-        super().__init__(uri, db_client)
+    # TODO: add spatial contraints for srid, geomtype, ndims
+    # Postgres
+    # CONSTRAINT enforce_dims_geom        CHECK (st_ndims(geom) = 2),
+    # CONSTRAINT enforce_geotype_geom     CHECK ((geometrytype(geom) = ANY (ARRAY['MULTIPOLYGON'::text, 'POLYGON'::text])) OR geom IS NULL),
+    # CONSTRAINT enforce_srid_geom        CHECK (st_srid(geom) = 28355)
+    # MSSQL
+    # CONSTRAINT ch_<schema><table><column>_SRId CHEKC(<column>.SRID = <srid>)
+    # CONSTRAINT ch_<schema><table><column>_geomtype CHECK(<column>.STGeometryType() IN('POLYGON','MULTIPOLYGON','....)
+    # CONSTRAINT ch_<schema><table><column>_ndims CHECK(<column>.HasZ = 1 AND <column>.HasM = 1)
+
+    def __init__(self, uri, folder, db_client, SR_id=4326):
+        super().__init__(uri, db_client, SR_id=SR_id)
         assert isinstance(folder, str)
         self._folder = folder
 

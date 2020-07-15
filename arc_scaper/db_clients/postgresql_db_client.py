@@ -29,7 +29,7 @@ class PostgreSQLClient(DBClient):
             "select_object_ids": "SELECT {object_id_field_name} FROM {table_name}",
             "data_insert": "INSERT INTO {table_name}({columns}) VALUES {values}",
             "data_row_insert": "({values})",
-            "spatial_data_insert": "({values}, ST_MakeValid(ST_GeomFromText('{wkt}',4326)))",
+            "spatial_data_insert": "(ST_MakeValid(ST_GeomFromText('{wkt}',4326)), {values})",
             "null_spatial_data_insert": "({values},NULL)",
             "create_database": "", # "CREATE DATABASE {database}",
             "drop_database": "", # "DROP DATABASE IF EXISTS {database}",
