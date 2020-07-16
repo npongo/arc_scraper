@@ -293,13 +293,13 @@ class ArcSetDataLoader:
                 else:
                     self.errors.append(Exception("Can not load metadata for {}".format(self.arc_set.name)))
 
-
         except Exception as e:
             self.__add_error(e)
             print(f"finished loading {self.arc_set.name} with error!")
         finally:
             self.save_stats_to_db()
-            self.__pbar.close()
+            if self.__pbar is not None:
+                self.__pbar.close()
             print(f"Finished loading {self.__loaded_record_count} of {self.__record_count} with {len(self.errors)} errors for table {self.arc_set.name} ({self.arc_set.sql_full_table_name}).\n ")
             for e in self.errors:
                 print(e)
