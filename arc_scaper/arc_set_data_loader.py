@@ -364,7 +364,7 @@ class ArcSetDataLoader:
 
                     self.__tries += 1
                     # self.try_load_records(query_builder)
-                elif query_builder.max_allowable_offset <= self.__max_allowable_offset:
+                elif query_builder.max_allowable_offset < self.__max_allowable_offset:
                     new_offset = min(max(query_builder.max_allowable_offset**2, 2), self.__max_allowable_offset)
                     query_builder.max_allowable_offset = new_offset
                 else:
