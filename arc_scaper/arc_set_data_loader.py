@@ -245,7 +245,7 @@ class ArcSetDataLoader:
                 query_builder.out_fields = self.arc_set.fields
                 query_builder.format = ArcFormat.JSON.value
                 query_builder.return_true_curves = False
-                query_builder.out_SR = 4326
+                query_builder.out_SR = self.arc_set.SR_id
                 query_builder.geometry_precision = self.__geometry_precision
                 for k, v in self.__extra_query_params:
                     setattr(query_builder, k, v)
@@ -427,7 +427,8 @@ class ArcSetDataLoader:
 
                 k = self.__db_client.run_bulk_insert(insert_template, inserts, formatter, batch=1000)
                 self.__loaded_record_count += k
-                self.__pbar.update(k)
+                if self.__pbar is not None:
+                    self.__pbar.update(k)
                 # print(f"loaded {self.__loaded_record_count} of {self.__record_count} into {self.arc_set.name}")
                 return k
             else:

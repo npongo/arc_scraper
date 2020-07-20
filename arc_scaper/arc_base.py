@@ -9,7 +9,7 @@ from helpers import exception_logging
 # TODO add out_srid
 class ArcBase(ABC):
 
-    def __init__(self, uri, db_client, error_logger=None, SR_id=4326):
+    def __init__(self, uri, db_client, error_logger=None, SR_id=None):
         self._uri = uri  # if uri.endswith("/") else f"{uri}/"
         self._db_client = db_client
         self._SR_id = SR_id
@@ -18,9 +18,12 @@ class ArcBase(ABC):
         self._raw_json = dict()
         self._errors = list()
         self._error_logger = error_logger if error_logger is not None else print
+        self.__default_SR_id = 3857
 
     @property
     def SR_id(self):
+        if self._SR_id is None:
+            self._raw_json.get('extent', {}).get('spatialReference', {}).get('latestWkid', self.__default_SR_id)
         return self._SR_id
 
     @property

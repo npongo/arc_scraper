@@ -113,15 +113,15 @@ if __name__ == "__main__":
                  'max_allowable_offset': 1025,
                  'geometry_precision': 7
                  },
-               #  {'uri': 'http://geoportal.menlhk.go.id/arcgis/rest/services/KLHK/Penutupan_Lahan_Tahun_2019/MapServer/0',
-               #   'result_record_count': 1,
-               #   'max_result_record_count': 10,
-               #   'max_tries': 2,
-               #   'target_time': 1500000,
-               #   'timeout': 1500,
-               #   'max_allowable_offset': 1025,
-               #   'geometry_precision': 7
-               #   },
+                {'uri': 'http://geoportal.menlhk.go.id/arcgis/rest/services/KLHK/Penutupan_Lahan_Tahun_2019/MapServer/0',
+                 'result_record_count': 1,
+                 'max_result_record_count': 10,
+                 'max_tries': 2,
+                 'target_time': 1500000,
+                 'timeout': 1500,
+                 'max_allowable_offset': 1025,
+                 'geometry_precision': 7
+                 },
                #
                # {'uri':  'http://geoportal.menlhk.go.id/arcgis/rest/services/KLHK/BURN_AREA_2015/MapServer/0',
                #   'result_record_count': 10,
