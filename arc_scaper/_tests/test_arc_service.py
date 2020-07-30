@@ -6,7 +6,8 @@ import pytest
 
 
 @pytest.fixture(autouse=True)
-def arc_service(uri, db_type, folder):
+def arc_service(monkeypatch, url, db_type, folder):
+    monkeypatch.setattr(requests, 'get', mock_get_return)
     # uri = 'http://geoportal.menlhk.go.id/arcgis/rest/services/SINAV'
     # folder = "sinav"
     sql_client = get_db_conn(db_type)
@@ -23,29 +24,21 @@ def arc_service(uri, db_type, folder):
     create_schema = sql_client.sql_generator_templates['create_schema'].format(schema=folder, schema_quoted=schema_quoted)
     sql_client.exec_non_query(create_schema, autocommit=True)
 
+    return ArcService(url, folder, "<dumpy arc rest model>", sql_client)
 
-    return ArcService(uri, folder, "<dumpy arc rest model>", sql_client)
 
-
-@pytest.mark.parametrize("uri, folder, db_type", [('http://geoportal.menlhk.go.id/arcgis/rest/services/SINAV', 'SINAV', 'mssql'),
-                                                  ('http://geoportal.menlhk.go.id/arcgis/rest/services/KLHK_EN', 'KLHK_EN', 'mysql'),
-                                                  ('http://geoportal.menlhk.go.id/arcgis/rest/services/Publik', 'Publik', 'mssql'),
-                                                  ('http://geoportal.menlhk.go.id/arcgis/rest/services/SINAV', 'SINAV', 'mysql'),
-                                                  ('http://geoportal.menlhk.go.id/arcgis/rest/services/KLHK_EN', 'KLHK_EN', 'mysql'),
-                                                  ('http://geoportal.menlhk.go.id/arcgis/rest/services/Publik', 'Publik', 'mysql'),
-                                                  ('http://geoportal.menlhk.go.id/arcgis/rest/services/SINAV', 'SINAV', 'postgresql'),
-                                                  ('http://geoportal.menlhk.go.id/arcgis/rest/services/KLHK_EN', 'KLHK_EN', 'postgresql'),
-                                                  ('http://geoportal.menlhk.go.id/arcgis/rest/services/Publik', 'Publik', 'postgresql')
+@pytest.mark.parametrize("url, folder, db_type, expected", [('http://geoportal.menlhk.go.id/arcgis/rest/services/SINAV', 'SINAV', 'mssql', 14),
+                                                  ('http://geoportal.menlhk.go.id/arcgis/rest/services/KLHK_EN', 'KLHK_EN', 'mysql', 50),
+                                                  ('http://geoportal.menlhk.go.id/arcgis/rest/services/Publik', 'Publik', 'mssql', 5)
                                                   ])
-def test_arc_service_init(monkeypatch, db_type, arc_service):
-    monkeypatch.setattr(requests, 'get', mock_get_return)
+def test_arc_service_init(arc_service, expected):
     arm = arc_service
 
     assert len(arm.errors) == 0
-    assert len(arm.arc_map_servers) == 44
+    assert len(arm.arc_map_servers) == expected
 
 
-@pytest.mark.parametrize("uri, folder, db_type", [('http://geoportal.menlhk.go.id/arcgis/rest/services/SINAV', 'SINAV', 'mssql'),
+@pytest.mark.parametrize("url, folder, db_type", [('http://geoportal.menlhk.go.id/arcgis/rest/services/SINAV', 'SINAV', 'mssql'),
                                                   ('http://geoportal.menlhk.go.id/arcgis/rest/services/KLHK_EN', 'KLHK_EN', 'mysql'),
                                                   ('http://geoportal.menlhk.go.id/arcgis/rest/services/Publik', 'Publik', 'mssql'),
                                                   ('http://geoportal.menlhk.go.id/arcgis/rest/services/SINAV', 'SINAV', 'mysql'),
@@ -55,8 +48,7 @@ def test_arc_service_init(monkeypatch, db_type, arc_service):
                                                   ('http://geoportal.menlhk.go.id/arcgis/rest/services/KLHK_EN', 'KLHK_EN', 'postgresql'),
                                                   ('http://geoportal.menlhk.go.id/arcgis/rest/services/Publik', 'Publik', 'postgresql')
                                                   ])
-def test_arc_service_generate_sql_preamble(monkeypatch, db_type, arc_service):
-    monkeypatch.setattr(requests, 'get', mock_get_return)
+def test_arc_service_generate_sql_preamble(db_type, arc_service):
     service = arc_service
     sql = service.generate_sql_preamble()
 
@@ -73,8 +65,8 @@ def test_arc_service_generate_sql_preamble(monkeypatch, db_type, arc_service):
         assert False
 
 
-@pytest.mark.parametrize("uri, folder, db_type", [('http://geoportal.menlhk.go.id/arcgis/rest/services/SINAV', 'SINAV', 'mssql'),
-                                                  ('http://geoportal.menlhk.go.id/arcgis/rest/services/KLHK_EN', 'KLHK_EN', 'mysql'),
+@pytest.mark.parametrize("url, folder, db_type", [('http://geoportal.menlhk.go.id/arcgis/rest/services/SINAV', 'SINAV', 'mssql'),
+                                                  ('http://geoportal.menlhk.go.id/arcgis/rest/services/KLHK_EN', 'KLHK_EN', 'mssql'),
                                                   ('http://geoportal.menlhk.go.id/arcgis/rest/services/Publik', 'Publik', 'mssql'),
                                                   ('http://geoportal.menlhk.go.id/arcgis/rest/services/SINAV', 'SINAV', 'mysql'),
                                                   ('http://geoportal.menlhk.go.id/arcgis/rest/services/KLHK_EN', 'KLHK_EN', 'mysql'),
@@ -83,9 +75,8 @@ def test_arc_service_generate_sql_preamble(monkeypatch, db_type, arc_service):
                                                   ('http://geoportal.menlhk.go.id/arcgis/rest/services/KLHK_EN', 'KLHK_EN', 'postgresql'),
                                                   ('http://geoportal.menlhk.go.id/arcgis/rest/services/Publik', 'Publik', 'postgresql')
                                                   ])
-def test_arc_service_generate_sql(monkeypatch,  db_type, arc_service):
-    monkeypatch.setattr(requests, 'get', mock_get_return)
-    test_arc_service_generate_sql_preamble(monkeypatch, db_type, arc_service)
+def test_arc_service_generate_sql(db_type, arc_service):
+    test_arc_service_generate_sql_preamble(db_type, arc_service)
     service = arc_service
 
     sql = service.generate_sql()
@@ -103,7 +94,7 @@ def test_arc_service_generate_sql(monkeypatch,  db_type, arc_service):
         assert False
 
 
-@pytest.mark.parametrize("uri, folder, db_type", [('http://geoportal.menlhk.go.id/arcgis/rest/services/SINAV', 'SINAV', 'mssql'),
+@pytest.mark.parametrize("url, folder, db_type", [('http://geoportal.menlhk.go.id/arcgis/rest/services/SINAV', 'SINAV', 'mssql'),
                                                   ('http://geoportal.menlhk.go.id/arcgis/rest/services/KLHK_EN', 'KLHK_EN', 'mysql'),
                                                   ('http://geoportal.menlhk.go.id/arcgis/rest/services/Publik', 'Publik', 'mssql'),
                                                   ('http://geoportal.menlhk.go.id/arcgis/rest/services/SINAV', 'SINAV', 'mysql'),
@@ -113,9 +104,8 @@ def test_arc_service_generate_sql(monkeypatch,  db_type, arc_service):
                                                   ('http://geoportal.menlhk.go.id/arcgis/rest/services/KLHK_EN', 'KLHK_EN', 'postgresql'),
                                                   ('http://geoportal.menlhk.go.id/arcgis/rest/services/Publik', 'Publik', 'postgresql')
                                                   ])
-def test_arc_service_generate_sql_extra(monkeypatch, db_type, arc_service):
-    test_arc_service_generate_sql(monkeypatch,  db_type, arc_service)
-    monkeypatch.setattr(requests, 'get', mock_get_return)
+def test_arc_service_generate_sql_extra(db_type, arc_service):
+    test_arc_service_generate_sql(db_type, arc_service)
     service = arc_service
     sql = service.generate_sql_extra()
 

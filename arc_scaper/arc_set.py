@@ -165,9 +165,7 @@ class ArcSet(ArcBase):
 
     @property
     def sql_table_name(self):
-        max_len = self.db_client.sql_generator_options['max_identifier_length']
-        table_name = "{0}_{1}".format(self.db_client.sanitize_name(self.uri.split("/")[-3]),
-                                      self.db_client.sanitize_name(self.name))
+        table_name = self.db_client.sanitize_name("{0}_{1}".format(self.uri.split("/")[-3], self.name))
         return table_name
 
     @property
@@ -420,8 +418,8 @@ class ArcSet(ArcBase):
 
     def _generate_code_table_relationships(self, domain):
         p = {
-            'schema': self.db_client.sanitize_and_quote_name(self.folder),
-            'table_name': self.db_client.sanitize_and_quote_name(f"{self.name}"),
+            'schema': self.db_client.quote_name(self.sql_schema),
+            'table_name': self.db_client.quote_name(self.sql_table_name),
             'code_table_name': self.db_client.sanitize_and_quote_name(f"{self.name}_{domain['fieldName']}"),
             'column_name': self.db_client.sanitize_and_quote_name(f"{domain['fieldName']}"),
             'fk_name': self.db_client.sanitize_and_quote_name(f"FK_{self.folder}_{self.name}_{domain['fieldName']}")

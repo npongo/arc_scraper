@@ -19,7 +19,7 @@ class SqlServerClient(DBClient):
             "unique_field": "NOT NULL UNIQUE",
             "unique_constraint": "CONSTRAINT [{schema}_{name}_{idx_name}] UNIQUE({idx_fields})",
             "primary_constraint": "CONSTRAINT [pk_{schema}_{name}_{idx_name}] PRIMARY KEY({idx_fields})",
-            "create_spatial_index": "CREATE SPATIAL INDEX [spidx_{schema}_{name}_{idx_fields}] ON {schema}.{table_name}({idx_fields_quote}) USING USING  GEOGRAPHY_AUTO_GRID WITH (CELLS_PER_OBJECT = 12); ",
+            "create_spatial_index": "CREATE SPATIAL INDEX [spidx_{schema}_{name}_{idx_fields}] ON {schema}.{table_name}({idx_fields_quote}) USING GEOGRAPHY_AUTO_GRID WITH (CELLS_PER_OBJECT = 12); ",
             "create_index": "CREATE INDEX [{schema}_{name}_{idx_name}] ON [{schema}].[{table_name}]({idx_fields})",
             "foreign_key_constraint": "ALTER TABLE {schema}.{table_name}\nADD CONSTRAINT [fk_{name}] FOREIGN KEY({column}) REFERENCES {ref_schema}.{ref_table_name} ({ref_column})",
             "create_schema": "IF SCHEMA_ID('{schema}') IS NULL EXEC('CREATE SCHEMA {schema_quoted}')",

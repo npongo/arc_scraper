@@ -45,7 +45,7 @@ class ArcQueryBuilder(str):
         self.__return_M = True
         self.__gdb_version = None
         self.__return_distinct_values = False
-        self.__return_true_curves = True
+        self.__return_true_curves = False  # currently not supported in parser
         self.__result_offset = None
         self.__result_record_count = None
         self.__datum_transformation = None

@@ -382,7 +382,7 @@ class ArcSetDataLoader:
                 geom_col_name = [self.__db_client.sanitize_and_quote_name(f['name']) for f in self.arc_set.fields
                                  if f['type'] == "esriFieldTypeGeometry"]
                 geometry_type = self.arc_set.geometry_type
-                col_names = geom_col_name
+                col_names = geom_col_name.copy()
                 if 'fields' in json:
                     col_names += [self.__db_client.sanitize_and_quote_name(n['name']) for n in (json.get('fields', {}))]
                 else:
@@ -412,7 +412,7 @@ class ArcSetDataLoader:
                     values = ",".join(["'{}' ".format(str(v).replace("'", "''")) if str(v).strip() != '' and v is not None
                                        else "NULL " for k, v in f['attributes'].items()])
 
-                    if geometry_type:
+                    if geometry_type and len(geom_col_name)>0:
                         geom = f.get('geometry', '')
                         wkt = json_to_wkt.get(geometry_type, non_geom)(geom)
                         # TODO: when next version of pygeos or shapely comes out add make_valid to fix any invalid geometries.

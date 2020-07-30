@@ -6,7 +6,8 @@ import pytest
 
 
 @pytest.fixture(autouse=True)
-def arc_layer(url, folder, db_type):
+def arc_layer(monkeypatch, url, folder, db_type):
+    monkeypatch.setattr(requests, 'get', mock_get_return)
     sql_client = get_db_conn(db_type)
     database = sql_client.db_conn['database']
     schema_quoted = sql_client.sanitize_and_quote_name(folder)
@@ -23,14 +24,19 @@ def arc_layer(url, folder, db_type):
     return ArcLayer(url, folder, sql_client)
 
 
-def test_arc_layer_init(monkeypatch, arc_layer):
-    monkeypatch.setattr(requests, 'get', mock_get_return)
+
+@pytest.mark.parametrize("url, folder, db_type, expected, Z, M, geom", [('http://geoportal.menlhk.go.id/arcgis/rest/services/SINAV/Usulan_IPHPS/MapServer/0', 'SINAV', 'mssql', 24, True, True, 'shape'),
+                                         ('http://geoportal.menlhk.go.id/arcgis/rest/services/KLHK_EN/IUPHHK_RE/MapServer/0', 'KLHK_EN', 'mssql', 18, False, False, 'shape'),
+                                         ('http://geoportal.menlhk.go.id/arcgis/rest/services/Publik/Def_2017_2018_Publik/MapServer/0', 'Publik', 'mssql', 1, True, True, ''),
+                                         ('http://geoportal.menlhk.go.id/arcgis/rest/services/Publik/IUPHHK_HT_Publik/MapServer/0', 'Publik', 'mssql', 1, False, False, '')])
+def test_arc_layer_init(arc_layer, expected, Z, M, geom):
+    #monkeypatch.setattr(requests, 'get', mock_get_return)
     layer = arc_layer
     assert len(layer.errors) == 0
-    assert len(layer.fields) == 15
-    assert layer.has_Z
-    assert layer.has_M
-    assert layer.geometry_field_name == "Shape"
+    assert len(layer.fields) == expected
+    assert layer.has_Z == Z
+    assert layer.has_M == M
+    assert layer.geometry_field_name.lower() == geom.lower()
 
 
 
@@ -38,8 +44,8 @@ def test_arc_layer_init(monkeypatch, arc_layer):
                                          ('http://geoportal.menlhk.go.id/arcgis/rest/services/KLHK_EN/IUPHHK_RE/MapServer/0', 'KLHK_EN', 'mssql', '[KLHK_EN].[IUPHHK_RE_IUPHHK_RE]'),
                                          ('http://geoportal.menlhk.go.id/arcgis/rest/services/Publik/Def_2017_2018_Publik/MapServer/0', 'Publik', 'mssql', '[Publik].[def_2017_2018_publik_deforestasi_2017_2018]'),
                                          ('http://geoportal.menlhk.go.id/arcgis/rest/services/Publik/IUPHHK_HT_Publik/MapServer/0', 'Publik', 'mssql', '[Publik].[iuphhk_ht_publik_iuphhk_hutan_tanaman]')])
-def test_arc_layer_sql_table_name(monkeypatch, arc_layer, db_type, expected):
-    monkeypatch.setattr(requests, 'get', mock_get_return)
+def test_arc_layer_sql_table_name( arc_layer, db_type, expected):
+
     sql_name = arc_layer.sql_full_table_name
     assert sql_name.lower() == expected.lower()
 
@@ -58,13 +64,12 @@ def test_arc_layer_sql_table_name(monkeypatch, arc_layer, db_type, expected):
                                                   ('http://geoportal.menlhk.go.id/arcgis/rest/services/Publik/Def_2017_2018_Publik/MapServer/0', 'test', 'postgresql'),
                                                   ('http://geoportal.menlhk.go.id/arcgis/rest/services/Publik/IUPHHK_HT_Publik/MapServer/0', 'test', 'postgresql')
                                                   ])
-def test_arc_layer_generate_sql(monkeypatch, db_type, arc_layer):
-    test_arc_layer_generate_sql_preamble(monkeypatch, db_type, arc_layer)
-    monkeypatch.setattr(requests, 'get', mock_get_return)
+def test_arc_layer_generate_sql(db_type, arc_layer):
+    test_arc_layer_generate_sql_preamble(db_type, arc_layer)
     layer = arc_layer
     sql = layer.generate_sql()
 
-    save_test_to_file(f"arc_set_generate_{db_type}.txt", sql)
+    save_test_to_file(f"arc_set_generate_{db_type}.txt", sql)  # comment out after generated first time and hand checked for correctness
     sql_expected = get_generated_sql_expected(f"arc_set_generate_{db_type}.txt")
 
     assert sql.replace("\n", '').replace("\r", "").replace("\t", '').strip()\
@@ -90,9 +95,8 @@ def test_arc_layer_generate_sql(monkeypatch, db_type, arc_layer):
                                                   ('http://geoportal.menlhk.go.id/arcgis/rest/services/Publik/Def_2017_2018_Publik/MapServer/0', 'test', 'postgresql'),
                                                   ('http://geoportal.menlhk.go.id/arcgis/rest/services/Publik/IUPHHK_HT_Publik/MapServer/0', 'test', 'postgresql')
                                                   ])
-def test_arc_layer_generate_sql_extra(monkeypatch,  db_type, arc_layer):
-    test_arc_layer_generate_sql(monkeypatch, db_type, arc_layer)
-    monkeypatch.setattr(requests, 'get', mock_get_return)
+def test_arc_layer_generate_sql_extra(db_type, arc_layer):
+    test_arc_layer_generate_sql(db_type, arc_layer)
     layer = arc_layer
     sql = layer.generate_sql_extra()
 
@@ -121,8 +125,7 @@ def test_arc_layer_generate_sql_extra(monkeypatch,  db_type, arc_layer):
                                                   ('http://geoportal.menlhk.go.id/arcgis/rest/services/Publik/Def_2017_2018_Publik/MapServer/0', 'test', 'postgresql'),
                                                   ('http://geoportal.menlhk.go.id/arcgis/rest/services/Publik/IUPHHK_HT_Publik/MapServer/0', 'test', 'postgresql')
                                                   ])
-def test_arc_layer_generate_sql_preamble(monkeypatch,  db_type, arc_layer):
-    monkeypatch.setattr(requests, 'get', mock_get_return)
+def test_arc_layer_generate_sql_preamble(db_type, arc_layer):
     layer = arc_layer
     sql = layer.generate_sql_preamble()
 

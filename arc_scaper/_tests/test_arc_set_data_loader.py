@@ -37,34 +37,23 @@ def arc_layer(url, folder, db_type):
     return arc_layer
 
 
-@pytest.mark.parametrize("url, folder, db_type, expected", [
-    ('http://geoportal.menlhk.go.id/arcgis/rest/services/SINAV/Usulan_IPHPS/MapServer/0', 'sinav', 'mssql',
-     '[sinav].[dbklhk_pkps_pskl_usulan_iphps]'),
-    ('http://geoportal.menlhk.go.id/arcgis/rest/services/KLHK_EN/IUPHHK_RE/MapServer/0', 'klhk_en', 'mssql',
-     '[klhk_en].[iuphhk_re]'),
-    ('http://geoportal.menlhk.go.id/arcgis/rest/services/Publik/Def_2017_2018_Publik/MapServer/0', 'publik', 'mssql',
-     '[publik].[deforestasi_2017_2018]'),
-    ('http://geoportal.menlhk.go.id/arcgis/rest/services/Publik/IUPHHK_HT_Publik/MapServer/0', 'publik', 'mssql',
-     '[publik].[iuphhk_hutan_tanaman]'),
-    ('http://geoportal.menlhk.go.id/arcgis/rest/services/SINAV/Usulan_IPHPS/MapServer/0', 'sinav', 'mysql',
-     '[sinav].[dbklhk_pkps_pskl_usulan_iphps]'),
-    ('http://geoportal.menlhk.go.id/arcgis/rest/services/KLHK_EN/IUPHHK_RE/MapServer/0', 'klhk_en', 'mysql',
-     '[klhk_en].[iuphhk_re]'),
-    ('http://geoportal.menlhk.go.id/arcgis/rest/services/Publik/Def_2017_2018_Publik/MapServer/0', 'publik', 'mysql',
-     '[publik].[deforestasi_2017_2018]'),
-    ('http://geoportal.menlhk.go.id/arcgis/rest/services/Publik/IUPHHK_HT_Publik/MapServer/0', 'publik', 'mysql',
-     '[publik].[iuphhk_hutan_tanaman]'),
-    ('http://geoportal.menlhk.go.id/arcgis/rest/services/SINAV/Usulan_IPHPS/MapServer/0', 'sinav', 'postgresql',
-     '[sinav].[dbklhk_pkps_pskl_usulan_iphps]'),
-    ('http://geoportal.menlhk.go.id/arcgis/rest/services/KLHK_EN/IUPHHK_RE/MapServer/0', 'klhk_en', 'postgresql',
-     '[klhk_en].[iuphhk_re]'),
+@pytest.mark.parametrize("url, folder, db_type", [
+    ('http://geoportal.menlhk.go.id/arcgis/rest/services/SINAV/Usulan_IPHPS/MapServer/0', 'sinav', 'mssql'),
+    ('http://geoportal.menlhk.go.id/arcgis/rest/services/KLHK_EN/IUPHHK_RE/MapServer/0', 'klhk_en', 'mssql'),
+    ('http://geoportal.menlhk.go.id/arcgis/rest/services/Publik/Def_2017_2018_Publik/MapServer/0', 'publik', 'mssql'),
+    ('http://geoportal.menlhk.go.id/arcgis/rest/services/Publik/IUPHHK_HT_Publik/MapServer/0', 'publik', 'mssql'),
+    ('http://geoportal.menlhk.go.id/arcgis/rest/services/SINAV/Usulan_IPHPS/MapServer/0', 'sinav', 'mysql'),
+    ('http://geoportal.menlhk.go.id/arcgis/rest/services/KLHK_EN/IUPHHK_RE/MapServer/0', 'klhk_en', 'mysql'),
+    ('http://geoportal.menlhk.go.id/arcgis/rest/services/Publik/Def_2017_2018_Publik/MapServer/0', 'publik', 'mysql'),
+    ('http://geoportal.menlhk.go.id/arcgis/rest/services/Publik/IUPHHK_HT_Publik/MapServer/0', 'publik', 'mysql'),
+    ('http://geoportal.menlhk.go.id/arcgis/rest/services/SINAV/Usulan_IPHPS/MapServer/0', 'sinav', 'postgresql'),
+    ('http://geoportal.menlhk.go.id/arcgis/rest/services/KLHK_EN/IUPHHK_RE/MapServer/0', 'klhk_en', 'postgresql'),
     ('http://geoportal.menlhk.go.id/arcgis/rest/services/Publik/Def_2017_2018_Publik/MapServer/0', 'publik',
-     'postgresql',
-     '[publik].[deforestasi_2017_2018]'),
-    ('http://geoportal.menlhk.go.id/arcgis/rest/services/Publik/IUPHHK_HT_Publik/MapServer/0', 'publik', 'postgresql',
-     '[publik].[iuphhk_hutan_tanaman]'),
+     'postgresql'),
+    ('http://geoportal.menlhk.go.id/arcgis/rest/services/Publik/IUPHHK_HT_Publik/MapServer/0', 'publik',
+     'postgresql')
     ])
-def test_arc_set_data_loader_init(arc_layer, expected):
+def test_arc_set_data_loader_init(arc_layer):
 
     loader = ArcSetDataLoader(arc_layer)
 
@@ -72,34 +61,22 @@ def test_arc_set_data_loader_init(arc_layer, expected):
     assert loader.arc_set == arc_layer
 
 
-@pytest.mark.parametrize("url, folder, db_type, expected", [
-    ('http://geoportal.menlhk.go.id/arcgis/rest/services/SINAV/Usulan_IPHPS/MapServer/0', 'sinav', 'mssql',
-     '[sinav].[dbklhk_pkps_pskl_usulan_iphps]'),
-    ('http://geoportal.menlhk.go.id/arcgis/rest/services/KLHK_EN/IUPHHK_RE/MapServer/0', 'klhk_en', 'mssql',
-     '[klhk_en].[iuphhk_re]'),
-    ('http://geoportal.menlhk.go.id/arcgis/rest/services/Publik/Def_2017_2018_Publik/MapServer/0', 'publik', 'mssql',
-     '[publik].[deforestasi_2017_2018]'),
-    ('http://geoportal.menlhk.go.id/arcgis/rest/services/Publik/IUPHHK_HT_Publik/MapServer/0', 'publik', 'mssql',
-     '[publik].[iuphhk_hutan_tanaman]'),
-    ('http://geoportal.menlhk.go.id/arcgis/rest/services/SINAV/Usulan_IPHPS/MapServer/0', 'sinav', 'mysql',
-     '[sinav].[dbklhk_pkps_pskl_usulan_iphps]'),
-    ('http://geoportal.menlhk.go.id/arcgis/rest/services/KLHK_EN/IUPHHK_RE/MapServer/0', 'klhk_en', 'mysql',
-     '[klhk_en].[iuphhk_re]'),
-    ('http://geoportal.menlhk.go.id/arcgis/rest/services/Publik/Def_2017_2018_Publik/MapServer/0', 'publik', 'mysql',
-     '[publik].[deforestasi_2017_2018]'),
-    ('http://geoportal.menlhk.go.id/arcgis/rest/services/Publik/IUPHHK_HT_Publik/MapServer/0', 'publik', 'mysql',
-     '[publik].[iuphhk_hutan_tanaman]'),
-    ('http://geoportal.menlhk.go.id/arcgis/rest/services/SINAV/Usulan_IPHPS/MapServer/0', 'sinav', 'postgresql',
-     '[sinav].[dbklhk_pkps_pskl_usulan_iphps]'),
-    ('http://geoportal.menlhk.go.id/arcgis/rest/services/KLHK_EN/IUPHHK_RE/MapServer/0', 'klhk_en', 'postgresql',
-     '[klhk_en].[iuphhk_re]'),
+@pytest.mark.parametrize("url, folder, db_type", [
+    ('http://geoportal.menlhk.go.id/arcgis/rest/services/SINAV/Usulan_IPHPS/MapServer/0', 'sinav', 'mssql'),
+    ('http://geoportal.menlhk.go.id/arcgis/rest/services/KLHK_EN/IUPHHK_RE/MapServer/0', 'klhk_en', 'mssql'),
+    ('http://geoportal.menlhk.go.id/arcgis/rest/services/Publik/Def_2017_2018_Publik/MapServer/0', 'publik', 'mssql'),
+    ('http://geoportal.menlhk.go.id/arcgis/rest/services/Publik/IUPHHK_HT_Publik/MapServer/0', 'publik', 'mssql'),
+    ('http://geoportal.menlhk.go.id/arcgis/rest/services/SINAV/Usulan_IPHPS/MapServer/0', 'sinav', 'mysql'),
+    ('http://geoportal.menlhk.go.id/arcgis/rest/services/KLHK_EN/IUPHHK_RE/MapServer/0', 'klhk_en', 'mysql'),
+    ('http://geoportal.menlhk.go.id/arcgis/rest/services/Publik/Def_2017_2018_Publik/MapServer/0', 'publik', 'mysql'),
+    ('http://geoportal.menlhk.go.id/arcgis/rest/services/Publik/IUPHHK_HT_Publik/MapServer/0', 'publik', 'mysql'),
+    ('http://geoportal.menlhk.go.id/arcgis/rest/services/SINAV/Usulan_IPHPS/MapServer/0', 'sinav', 'postgresql'),
+    ('http://geoportal.menlhk.go.id/arcgis/rest/services/KLHK_EN/IUPHHK_RE/MapServer/0', 'klhk_en', 'postgresql'),
     ('http://geoportal.menlhk.go.id/arcgis/rest/services/Publik/Def_2017_2018_Publik/MapServer/0', 'publik',
-     'postgresql',
-     '[publik].[deforestasi_2017_2018]'),
-    ('http://geoportal.menlhk.go.id/arcgis/rest/services/Publik/IUPHHK_HT_Publik/MapServer/0', 'publik', 'postgresql',
-     '[publik].[iuphhk_hutan_tanaman]'),
+     'postgresql'),
+    ('http://geoportal.menlhk.go.id/arcgis/rest/services/Publik/IUPHHK_HT_Publik/MapServer/0', 'publik', 'postgresql')
     ])
-def test_arc_set_data_loader_load_stats(arc_layer, expected):
+def test_arc_set_data_loader_load_stats(arc_layer):
 
     loader = ArcSetDataLoader(arc_layer)
 
@@ -112,38 +89,26 @@ def test_arc_set_data_loader_load_stats(arc_layer, expected):
     assert len(loader.errors) == 0
 
 
-@pytest.mark.parametrize("url, folder, db_type, expected", [
-    ('http://geoportal.menlhk.go.id/arcgis/rest/services/SINAV/Usulan_IPHPS/MapServer/0', 'sinav', 'mssql',
-     '[sinav].[dbklhk_pkps_pskl_usulan_iphps]'),
-    ('http://geoportal.menlhk.go.id/arcgis/rest/services/KLHK_EN/IUPHHK_RE/MapServer/0', 'klhk_en', 'mssql',
-     '[klhk_en].[iuphhk_re]'),
-    ('http://geoportal.menlhk.go.id/arcgis/rest/services/Publik/Def_2017_2018_Publik/MapServer/0', 'publik', 'mssql',
-     '[publik].[deforestasi_2017_2018]'),
-    ('http://geoportal.menlhk.go.id/arcgis/rest/services/Publik/IUPHHK_HT_Publik/MapServer/0', 'publik', 'mssql',
-     '[publik].[iuphhk_hutan_tanaman]'),
-    #('http://geoportal.menlhk.go.id/arcgis/rest/services/SINAV/Usulan_IPHPS/MapServer/0', 'sinav', 'mysql',
-     #'[sinav].[dbklhk_pkps_pskl_usulan_iphps]'),
-    ('http://geoportal.menlhk.go.id/arcgis/rest/services/KLHK_EN/IUPHHK_RE/MapServer/0', 'klhk_en', 'mysql',
-     '[klhk_en].[iuphhk_re]'),
-    ('http://geoportal.menlhk.go.id/arcgis/rest/services/Publik/Def_2017_2018_Publik/MapServer/0', 'publik', 'mysql',
-     '[publik].[deforestasi_2017_2018]'),
-    ('http://geoportal.menlhk.go.id/arcgis/rest/services/Publik/IUPHHK_HT_Publik/MapServer/0', 'publik', 'mysql',
-     '[publik].[iuphhk_hutan_tanaman]'),
-    ('http://geoportal.menlhk.go.id/arcgis/rest/services/SINAV/Usulan_IPHPS/MapServer/0', 'sinav', 'postgresql',
-     '[sinav].[dbklhk_pkps_pskl_usulan_iphps]'),
-    ('http://geoportal.menlhk.go.id/arcgis/rest/services/KLHK_EN/IUPHHK_RE/MapServer/0', 'klhk_en', 'postgresql',
-     '[klhk_en].[iuphhk_re]'),
+@pytest.mark.parametrize("url, folder, db_type", [
+    ('http://geoportal.menlhk.go.id/arcgis/rest/services/SINAV/Usulan_IPHPS/MapServer/0', 'sinav', 'mssql'),
+    ('http://geoportal.menlhk.go.id/arcgis/rest/services/KLHK_EN/IUPHHK_RE/MapServer/0', 'klhk_en', 'mssql'),
+    ('http://geoportal.menlhk.go.id/arcgis/rest/services/Publik/Def_2017_2018_Publik/MapServer/0', 'publik', 'mssql'),
+    ('http://geoportal.menlhk.go.id/arcgis/rest/services/Publik/IUPHHK_HT_Publik/MapServer/0', 'publik', 'mssql'),
+    ('http://geoportal.menlhk.go.id/arcgis/rest/services/SINAV/Usulan_IPHPS/MapServer/0', 'sinav', 'mysql'),
+    ('http://geoportal.menlhk.go.id/arcgis/rest/services/KLHK_EN/IUPHHK_RE/MapServer/0', 'klhk_en', 'mysql'),
+    ('http://geoportal.menlhk.go.id/arcgis/rest/services/Publik/Def_2017_2018_Publik/MapServer/0', 'publik', 'mysql'),
+    ('http://geoportal.menlhk.go.id/arcgis/rest/services/Publik/IUPHHK_HT_Publik/MapServer/0', 'publik', 'mysql'),
+    ('http://geoportal.menlhk.go.id/arcgis/rest/services/SINAV/Usulan_IPHPS/MapServer/0', 'sinav', 'postgresql'),
+    ('http://geoportal.menlhk.go.id/arcgis/rest/services/KLHK_EN/IUPHHK_RE/MapServer/0', 'klhk_en', 'postgresql'),
     ('http://geoportal.menlhk.go.id/arcgis/rest/services/Publik/Def_2017_2018_Publik/MapServer/0', 'publik',
-     'postgresql',
-     '[publik].[deforestasi_2017_2018]'),
-    ('http://geoportal.menlhk.go.id/arcgis/rest/services/Publik/IUPHHK_HT_Publik/MapServer/0', 'publik', 'postgresql',
-     '[publik].[iuphhk_hutan_tanaman]'),
+     'postgresql'),
+    ('http://geoportal.menlhk.go.id/arcgis/rest/services/Publik/IUPHHK_HT_Publik/MapServer/0', 'publik', 'postgresql'),
     ])
-def test_arc_set_data_loader_load_data(arc_layer, expected):
+def test_arc_set_data_loader_load_data(arc_layer):
     loader = ArcSetDataLoader(arc_layer)
 
     truncate_table = arc_layer.db_client.sql_generator_templates['truncate_table']\
-        .format(table_name=arc_layer.sql_table_name)
+        .format(table_name=arc_layer.sql_full_table_name)
     arc_layer.db_client.exec_non_query(truncate_table)
     loader.load_data()
     # assert len(loader.errors) == 0
@@ -153,7 +118,7 @@ def test_arc_set_data_loader_load_data(arc_layer, expected):
     assert len(loader._ArcSetDataLoader__loaded_OIDs) == loader.loaded_record_count
 
     select = arc_layer.db_client.sql_generator_templates['select_object_ids']\
-        .format(table_name=arc_layer.sql_table_name, object_id_field_name=loader.object_id_field_name)
+        .format(table_name=arc_layer.sql_full_table_name, object_id_field_name=loader.object_id_field_name)
     results = arc_layer.db_client.exec_result_set_query(select) or ()
     assert len(results) == loader.loaded_record_count
     sleep(1)
